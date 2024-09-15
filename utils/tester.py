@@ -173,7 +173,7 @@ class ModelTester:
 
         return
 
-    def cloud_segmentation_test(self, net, test_loader, config, num_votes=100, debug=False):
+    def cloud_segmentation_test(self, net, test_loader, config, num_votes=.2, debug=False):
         """
         Test method for cloud segmentation models
         """
@@ -212,6 +212,7 @@ class ModelTester:
 
         # If on validation directly compute score
         if test_loader.dataset.set == 'validation':
+            print("Using validation dataset")
             val_proportions = np.zeros(nc_model, dtype=np.float32)
             i = 0
             for label_value in test_loader.dataset.label_values:
@@ -220,6 +221,7 @@ class ModelTester:
                                                  for labels in test_loader.dataset.validation_labels])
                     i += 1
         else:
+            print("Using test?")
             val_proportions = None
 
         #####################
@@ -308,6 +310,8 @@ class ModelTester:
             if last_min + 1 < new_min:
 
                 # Update last_min
+                # print(f"Last min: {last_min}")
+                # print(f"New min: {new_min}")
                 last_min += 1
 
                 # Show vote results (On subcloud so it is not the good values here)
@@ -326,7 +330,7 @@ class ModelTester:
                         preds = test_loader.dataset.label_values[np.argmax(probs, axis=1)].astype(np.int32)
 
                         # Targets
-                        targets = test_loader.dataset.input_labels[i]
+                        targets = test_loader.dataset.input_labels[i].astype(np.int32)
 
                         # Confs
                         Confs += [fast_confusion(targets, preds, test_loader.dataset.label_values)]
@@ -352,7 +356,8 @@ class ModelTester:
                     print(s + '\n')
 
                 # Save real IoU once in a while
-                if int(np.ceil(new_min)) % 10 == 0:
+                # if int(np.ceil(new_min)) % 10 == 0:
+                if True: # Try to just run this anyways to save something
 
                     # Project predictions
                     print('\nReproject Vote #{:d}'.format(int(np.floor(new_min))))
@@ -386,6 +391,7 @@ class ModelTester:
 
                             # Get the predicted labels
                             preds = test_loader.dataset.label_values[np.argmax(proj_probs[i], axis=1)].astype(np.int32)
+                            print(f"Predictions: {preds}")
 
                             # Confusion
                             targets = test_loader.dataset.validation_labels[i]
@@ -412,10 +418,12 @@ class ModelTester:
                         print(s)
                         print('-' * len(s) + '\n')
 
-                    # Save predictions
+                    # Save predictions. Trying to indent this to run it
                     print('Saving clouds')
                     t1 = time.time()
                     for i, file_path in enumerate(test_loader.dataset.files):
+                        print(f"Saving cloud for {file_path}\n")
+                        print("**"*40)
 
                         # Get file
                         points = test_loader.dataset.load_evaluation_points(file_path)
@@ -423,26 +431,33 @@ class ModelTester:
                         # Get the predicted labels
                         preds = test_loader.dataset.label_values[np.argmax(proj_probs[i], axis=1)].astype(np.int32)
 
-                        # Save plys
+                                # Save plys
+                        # if len(proj_probs) == 0:
+                        #     print("proj_probs is empty! Check model inference.")
+                        #     sys.exit(1)
                         cloud_name = file_path.split('/')[-1]
+                        print(f"cloud_name is: {cloud_name}")
                         test_name = join(test_path, 'predictions', cloud_name)
+                        print(f'Saving to {test_name}')
                         write_ply(test_name,
-                                  [points, preds],
-                                  ['x', 'y', 'z', 'preds'])
+                                [points, preds],
+                                ['x', 'y', 'z', 'preds'])
                         test_name2 = join(test_path, 'probs', cloud_name)
                         prob_names = ['_'.join(test_loader.dataset.label_to_names[label].split())
-                                      for label in test_loader.dataset.label_values]
+                                    for label in test_loader.dataset.label_values]
                         write_ply(test_name2,
-                                  [points, proj_probs[i]],
-                                  ['x', 'y', 'z'] + prob_names)
+                                [points, proj_probs[i]],
+                                ['x', 'y', 'z'] + prob_names)
+                    # else:
+                    #     print(f"proj_probs contains data for {len(proj_probs)} files.")
 
                         # Save potentials
                         pot_points = np.array(test_loader.dataset.pot_trees[i].data, copy=False)
                         pot_name = join(test_path, 'potentials', cloud_name)
                         pots = test_loader.dataset.potentials[i].numpy().astype(np.float32)
                         write_ply(pot_name,
-                                  [pot_points.astype(np.float32), pots],
-                                  ['x', 'y', 'z', 'pots'])
+                                [pot_points.astype(np.float32), pots],
+                                ['x', 'y', 'z', 'pots'])
 
                         # Save ascii preds
                         if test_loader.dataset.set == 'test':
@@ -482,8 +497,8 @@ class ModelTester:
         nc_model = net.C
 
         # Test saving path
-        test_path = None
-        report_path = None
+        test_path = "test1"
+        report_path = "report1"
         if config.saving:
             test_path = join('test', config.saving_path.split('/')[-1])
             if not exists(test_path):

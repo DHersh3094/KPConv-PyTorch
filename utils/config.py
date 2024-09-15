@@ -59,7 +59,7 @@ class Config:
     in_radius = 1.0
 
     # Number of CPU threads for the input pipeline
-    input_threads = 8
+    input_threads = -1
 
     ##################
     # Model parameters
@@ -172,7 +172,7 @@ class Config:
     val_batch_num = 10
 
     # Maximal number of epochs
-    max_epoch = 1000
+    max_epoch = 1000 # Starting point: 1000
 
     # Number of steps per epochs
     epoch_steps = 1000
@@ -185,7 +185,7 @@ class Config:
 
     # Do we nee to save convergence
     saving = True
-    saving_path = None
+    saving_path = 'savingfromconfig/'
 
     def __init__(self):
         """

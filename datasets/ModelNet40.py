@@ -110,7 +110,7 @@ class ModelNet40Dataset(PointCloudDataset):
         self.ignored_labels = np.array([])
 
         # Dataset folder
-        self.path = '../../Data/ModelNet40'
+        self.path = '../Data/ModelNet40'
 
         # Type of task conducted on this dataset
         self.dataset_task = 'classification'
@@ -252,9 +252,9 @@ class ModelNet40Dataset(PointCloudDataset):
 
             # Collect training file names
             if self.train:
-                names = np.loadtxt(join(self.path, 'modelnet40_train.txt'), dtype=np.str)
+                names = np.loadtxt(join(self.path, 'modelnet40_train.txt'), dtype=str)
             else:
-                names = np.loadtxt(join(self.path, 'modelnet40_test.txt'), dtype=np.str)
+                names = np.loadtxt(join(self.path, 'modelnet40_test.txt'), dtype=str)
 
             # Initialize containers
             input_points = []

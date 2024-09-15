@@ -40,6 +40,7 @@ from utils.config import Config
 from utils.tester import ModelTester
 from models.architectures import KPCNN, KPFCNN
 
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
@@ -97,10 +98,10 @@ if __name__ == '__main__':
     #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
     #       > '(old_)results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
 
-    chosen_log = 'results/Log_2024-05-14_21-04-36'
+    chosen_log = 'results/Log_2024-09-15_08-49-49'
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
-    chkp_idx = -1
+    chkp_idx = None
 
     # Choose to test on validation or test split
     on_val = True
@@ -147,8 +148,9 @@ if __name__ == '__main__':
     #config.augment_symmetries = False
     #config.batch_num = 3
     #config.in_radius = 4
-    config.validation_size = 200
-    config.input_threads = 10
+    # config.max_epoch = 10 # I set this to make sure things run
+    config.validation_size = 512 # Starting point: 200
+    config.input_threads = 32 # Starting point: 10
 
     ##############
     # Prepare Data

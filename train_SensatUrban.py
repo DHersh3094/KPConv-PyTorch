@@ -168,7 +168,7 @@ class SensatUrbanConfig(Config):
     #####################
 
     # Maximal number of epochs
-    max_epoch = 500
+    max_epoch = 50
 
     # Learning rate management
     learning_rate = 1e-2
@@ -180,7 +180,7 @@ class SensatUrbanConfig(Config):
     batch_num = 6
 
     # Number of steps per epochs
-    epoch_steps = 500
+    epoch_steps = 100
 
     # Number of validation examples per epoch
     validation_size = 50
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     ############################
 
     # Set which gpu is going to be used
-    GPU_ID = "1"
+    GPU_ID = "0"
 
     # Set GPU visible device
     os.environ["CUDA_VISIBLE_DEVICES"] = GPU_ID

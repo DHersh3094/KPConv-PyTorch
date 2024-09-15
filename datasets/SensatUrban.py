@@ -54,7 +54,7 @@ from utils.config import bcolors
 class SensatUrbanDataset(PointCloudDataset):
     """Class to handle SensatUrban dataset."""
 
-    def __init__(self, config, set="training", use_potentials=True, load_data=True, path = "../../Data/SensatUrban"):
+    def __init__(self, config, set="training", use_potentials=True, load_data=True, path = "../Data/SensatUrban"):
         PointCloudDataset.__init__(self, "SensatUrban")
 
         ############
@@ -111,49 +111,57 @@ class SensatUrbanDataset(PointCloudDataset):
 
         # Proportion of validation scenes
         self.cloud_names = [
-           "cambridge_block_0",
-            "cambridge_block_1",
             "cambridge_block_2",
-            "cambridge_block_3",
-            "cambridge_block_4",
-            "cambridge_block_6",
-            "cambridge_block_7",
             "cambridge_block_8",
-            "cambridge_block_9",
-            "cambridge_block_10",
             "cambridge_block_12",
-            "cambridge_block_13",
-            "cambridge_block_14",
             "cambridge_block_17",
             "cambridge_block_18",
-            "cambridge_block_19",
             "cambridge_block_20",
-            "cambridge_block_21",
-            "cambridge_block_23",
-            "cambridge_block_25",
-            "cambridge_block_26",
-            "cambridge_block_28",
-            "cambridge_block_32",
-            "cambridge_block_33",
-            "cambridge_block_34",
-            "birmingham_block_1",
-            "birmingham_block_3",
-            "birmingham_block_4",
-            "birmingham_block_5",
-            "birmingham_block_6",
-            "birmingham_block_7",
-            "birmingham_block_9",
-            "birmingham_block_10",
-            "birmingham_block_11",
-            "birmingham_block_12",
-            "birmingham_block_13",
+            "cambridge_block_32",   
+        #    "cambridge_block_0",
+        #     "cambridge_block_1",
+        #     "cambridge_block_2",
+        #     "cambridge_block_3",
+        #     "cambridge_block_4",
+        #     "cambridge_block_6",
+        #     "cambridge_block_7",
+        #     "cambridge_block_8",
+        #     "cambridge_block_9",
+        #     "cambridge_block_10",
+        #     "cambridge_block_12",
+        #     "cambridge_block_13",
+        #     "cambridge_block_14",
+        #     "cambridge_block_17",
+        #     "cambridge_block_18",
+        #     "cambridge_block_19",
+        #     "cambridge_block_20",
+        #     "cambridge_block_21",
+        #     "cambridge_block_23",
+        #     "cambridge_block_25",
+        #     "cambridge_block_26",
+        #     "cambridge_block_28",
+        #     "cambridge_block_32",
+        #     "cambridge_block_33",
+        #     "cambridge_block_34",
+        #     "birmingham_block_1",
+        #     "birmingham_block_3",
+        #     "birmingham_block_4",
+        #     "birmingham_block_5",
+        #     "birmingham_block_6",
+        #     "birmingham_block_7",
+        #     "birmingham_block_9",
+        #     "birmingham_block_10",
+        #     "birmingham_block_11",
+        #     "birmingham_block_12",
+        #     "birmingham_block_13",
         ]   
         # 37 cloud files
         self.all_splits = [
             # Cambridge
-            0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
-            # Birmingham
-            0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 1, 1
+            # 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
+            # # Birmingham
+            # 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0,
         ]
         self.validation_split = 1
 
