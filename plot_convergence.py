@@ -42,6 +42,24 @@ from datasets.S3DIS import S3DISDataset
 from datasets.SensatUrban import SensatUrbanDataset 
 from datasets.SemanticKitti import SemanticKittiDataset
 
+
+# Inputs
+
+# Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
+log_start = 'Log_2024-09-15_08-35-29'
+log_end = 'Log_2024-09-15_08-35-29'
+
+# Name of the result path
+res_path = 'results'
+
+# Save plots in the first log file 
+plot_path = os.path.join(res_path, log_start, 'plots')
+
+if not os.path.exists(plot_path):
+    os.mkdir(plot_path)
+
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 #
 #           Utility functions
@@ -218,7 +236,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     # Parameters
     # **********
 
-    plot_lr = False
+    plot_lr = True
     smooth_epochs = 0.5
     stride = 2
 
@@ -297,6 +315,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
         # Customize the graph
         ax = fig.gca()
         ax.grid(linestyle='-.', which='both')
+        plt.savefig(os.path.join(plot_path, "learning_rate.png"))
         # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
     # Plots loss
@@ -310,11 +329,14 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     # Set names for axes
     plt.xlabel('epochs')
     plt.ylabel('loss')
-    plt.yscale('log')
+    # plt.yscale('log')
 
     # Display legends and title
     plt.legend(loc=1)
     plt.title('Losses compare')
+    plt.grid()
+    plt.savefig(os.path.join(plot_path, 'loss.png'))
+
 
     # Customize the graph
     ax = fig.gca()
@@ -342,6 +364,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     ax.grid(linestyle='-.', which='both')
     # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
+    # plt.savefig(os.path.join(plot_path, 'loss.png'))
     # Show all
     plt.show()
 
@@ -458,6 +481,7 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
             ax.grid(linestyle='-.', which='both')
             #ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
+    plt.savefig(os.path.join(plot_path, "IoU.png"))
     # Show all
     plt.show()
 
@@ -705,7 +729,7 @@ def compare_convergences_SLAM(dataset, list_of_paths, list_of_names=None):
 #
 
 
-def experiment_name_1():
+def experiment_name_1(res_path=res_path, log_start=log_start, log_end=log_end):
     """
     In this function you choose the results you want to plot together, to compare them as an experiment.
     Just return the list of log paths (like 'results/Log_2020-04-04_10-04-42' for example), and the associated names
@@ -714,11 +738,11 @@ def experiment_name_1():
     """
 
     # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
-    start = 'Log_2020-04-22_11-52-58'
-    end = 'Log_2023-07-29_12-40-27'
+    start = log_start
+    end = log_end
 
     # Name of the result path
-    res_path = 'results'
+    res_path = res_path
 
     # Gather logs and sort by date
     logs = np.sort([join(res_path, l) for l in listdir_str(res_path) if start <= l <= end])
