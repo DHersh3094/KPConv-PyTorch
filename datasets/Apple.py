@@ -31,7 +31,6 @@ import math
 import warnings
 from multiprocessing import Lock
 
-
 # OS functions
 from os import listdir
 from os.path import exists, join, isdir
@@ -50,12 +49,12 @@ from utils.config import bcolors
 #           Dataset class definition
 #       \******************************/
 
-
-class SensatUrbanDataset(PointCloudDataset):
+class AppleDataset(PointCloudDataset):
     """Class to handle SensatUrban dataset."""
 
-    def __init__(self, config, set="training", use_potentials=True, load_data=True, path = "../Data/SenMerged/SensatUrban_Dataset/ply/"):
-        PointCloudDataset.__init__(self, "SensatUrban")
+    def __init__(self, config, set="training", use_potentials=True, load_data=True,
+                 path="../Data/Apple"):
+        PointCloudDataset.__init__(self, "Apple")
 
         ############
         # Parameters
@@ -64,19 +63,8 @@ class SensatUrbanDataset(PointCloudDataset):
 
         # Dict from labels to names
         self.label_to_names = {
-            0: "ground",
-            1: "vegetation",
-            2: "building",
-            3: "wall",
-            4: "bridge",
-            5: "parking",
-            6: "rail",
-            7: "traffic road",
-            8: "street furniture",
-            9: "car",
-            10: "footpath",
-            11: "bike",
-            12: "water",
+            0: "branch",
+            1: "apple",
         }
 
         # Initialize a bunch of variables concerning class labels
@@ -84,6 +72,12 @@ class SensatUrbanDataset(PointCloudDataset):
 
         # List of classes ignored during training (can be empty)
         self.ignored_labels = np.array([])
+
+        # self.epoch_steps = 100
+        # self.batch_num = 10
+        # self.first_subsampling_dl = 0.015
+        # self.in_radius = .1
+        # self.input_threads = -1
 
         # Dataset folder
         self.path = path
@@ -112,54 +106,14 @@ class SensatUrbanDataset(PointCloudDataset):
 
         # Proportion of validation scenes
         self.cloud_names = [
-            "cambridge_block_2",
-            "cambridge_block_8",
-            "cambridge_block_12",
-            "cambridge_block_17",
-            "cambridge_block_18",
-            "cambridge_block_20",
-            "cambridge_block_32",   
-        #    "cambridge_block_0",
-        #     "cambridge_block_1",
-        #     "cambridge_block_2",
-        #     "cambridge_block_3",
-        #     "cambridge_block_4",
-        #     "cambridge_block_6",
-        #     "cambridge_block_7",
-        #     "cambridge_block_8",
-        #     "cambridge_block_9",
-        #     "cambridge_block_10",
-        #     "cambridge_block_12",
-        #     "cambridge_block_13",
-        #     "cambridge_block_14",
-        #     "cambridge_block_17",
-        #     "cambridge_block_18",
-        #     "cambridge_block_19",
-        #     "cambridge_block_20",
-        #     "cambridge_block_21",
-        #     "cambridge_block_23",
-        #     "cambridge_block_25",
-        #     "cambridge_block_26",
-        #     "cambridge_block_28",
-        #     "cambridge_block_32",
-        #     "cambridge_block_33",
-        #     "cambridge_block_34",
-        #     "birmingham_block_1",
-        #     "birmingham_block_3",
-        #     "birmingham_block_4",
-        #     "birmingham_block_5",
-        #     "birmingham_block_6",
-        #     "birmingham_block_7",
-        #     "birmingham_block_9",
-        #     "birmingham_block_10",
-        #     "birmingham_block_11",
-        #     "birmingham_block_12",
-        #     "birmingham_block_13",
-        ]   
+            "branch_1",
+            "branch_2",
+            "branch_3"
+        ]
         # 37 cloud files
         self.all_splits = [
             # Cambridge
-            0, 0, 0, 0, 0, 1, 1
+            0, 0, 1
             # 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
             # # Birmingham
             # 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0,
@@ -207,7 +161,7 @@ class SensatUrbanDataset(PointCloudDataset):
                 if self.all_splits[i] == self.validation_split
             ]
 
-        if 0 < self.config.first_subsampling_dl <= 0.01:
+        if 0 < self.config.first_subsampling_dl <= 0.001:
             raise ValueError("subsampling_parameter too low (should be over 1 cm")
 
         # Initiate containers
@@ -282,7 +236,7 @@ class SensatUrbanDataset(PointCloudDataset):
             np.random.seed(42)
 
         return
-        
+
     def __getitem__(self, batch_i):
         """
         The main thread gives a list of indices to load a batch. Each worker is going to work in parallel to load a
@@ -293,7 +247,6 @@ class SensatUrbanDataset(PointCloudDataset):
             return self.potential_item(batch_i)
         else:
             return self.random_item(batch_i)
-
 
     def potential_item(self, batch_i, debug_workers=False):
 
@@ -418,6 +371,7 @@ class SensatUrbanDataset(PointCloudDataset):
 
             # Collect labels and colors
             input_points = (points[input_inds] - center_point).astype(np.float32)
+            # print(len(input_points))
             input_colors = self.input_colors[cloud_ind][input_inds]
             if self.set in ["test", "ERF"]:
                 input_labels = np.zeros(input_points.shape[0])
@@ -936,10 +890,10 @@ class SensatUrbanDataset(PointCloudDataset):
 #       \********************************/
 
 
-class SensatUrbanSampler(Sampler):
+class AppleSampler(Sampler):
     """Sampler for SensatUrban"""
 
-    def __init__(self, dataset: SensatUrbanDataset):
+    def __init__(self, dataset: AppleDataset):
         Sampler.__init__(self, dataset)
 
         # Dataset used by the sampler (no copy is made in memory)
@@ -1138,7 +1092,7 @@ class SensatUrbanSampler(Sampler):
                 break
 
     def calibration(
-        self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False
+            self, dataloader, untouched_ratio=0.9, verbose=False, force_redo=False
     ):
         """
         Method performing batch and neighbors calibration.
@@ -1210,7 +1164,7 @@ class SensatUrbanSampler(Sampler):
         neighb_limits = []
         for layer_ind in range(self.dataset.config.num_layers):
 
-            dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
+            dl = self.dataset.config.first_subsampling_dl * (2 ** layer_ind)
             if self.dataset.config.deform_layers[layer_ind]:
                 r = dl * self.dataset.config.deform_radius
             else:
@@ -1228,7 +1182,7 @@ class SensatUrbanSampler(Sampler):
         if verbose:
             print("Check neighbors limit dictionary")
             for layer_ind in range(self.dataset.config.num_layers):
-                dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
+                dl = self.dataset.config.first_subsampling_dl * (2 ** layer_ind)
                 if self.dataset.config.deform_layers[layer_ind]:
                     r = dl * self.dataset.config.deform_radius
                 else:
@@ -1443,7 +1397,7 @@ class SensatUrbanSampler(Sampler):
 
             # Save neighb_limit dictionary
             for layer_ind in range(self.dataset.config.num_layers):
-                dl = self.dataset.config.first_subsampling_dl * (2**layer_ind)
+                dl = self.dataset.config.first_subsampling_dl * (2 ** layer_ind)
                 if self.dataset.config.deform_layers[layer_ind]:
                     r = dl * self.dataset.config.deform_radius
                 else:
@@ -1457,7 +1411,7 @@ class SensatUrbanSampler(Sampler):
         return
 
 
-class SensatUrbanCustomBatch:
+class AppleCustomBatch:
     """Custom batch definition with memory pinning for SensatUrban"""
 
     def __init__(self, input_list):
@@ -1471,23 +1425,23 @@ class SensatUrbanCustomBatch:
         # Extract input tensors from the list of numpy array
         ind = 0
         self.points = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+            torch.from_numpy(nparray) for nparray in input_list[ind: ind + L]
         ]
         ind += L
         self.neighbors = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+            torch.from_numpy(nparray) for nparray in input_list[ind: ind + L]
         ]
         ind += L
         self.pools = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+            torch.from_numpy(nparray) for nparray in input_list[ind: ind + L]
         ]
         ind += L
         self.upsamples = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+            torch.from_numpy(nparray) for nparray in input_list[ind: ind + L]
         ]
         ind += L
         self.lengths = [
-            torch.from_numpy(nparray) for nparray in input_list[ind : ind + L]
+            torch.from_numpy(nparray) for nparray in input_list[ind: ind + L]
         ]
         ind += L
         self.features = torch.from_numpy(input_list[ind])
@@ -1584,7 +1538,7 @@ class SensatUrbanCustomBatch:
 
                 for b_i, length in enumerate(lengths):
 
-                    elem = layer_elems[i0 : i0 + length]
+                    elem = layer_elems[i0: i0 + length]
                     if element_name == "neighbors":
                         elem[elem >= self.points[layer_i].shape[0]] = -1
                         elem[elem >= 0] -= i0
@@ -1606,8 +1560,8 @@ class SensatUrbanCustomBatch:
         return all_p_list
 
 
-def SensatUrbanCollate(batch_data):
-    return SensatUrbanCustomBatch(batch_data)
+def AppleCollate(batch_data):
+    return AppleCustomBatch(batch_data)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -1622,7 +1576,6 @@ def debug_upsampling(dataset, loader):
     for epoch in range(10):
 
         for batch_i, batch in enumerate(loader):
-
             pc1 = batch.points[1].numpy()
             pc2 = batch.points[2].numpy()
             up1 = batch.upsamples[1].numpy()
@@ -1636,7 +1589,7 @@ def debug_upsampling(dataset, loader):
             p0 = pc1[10, :]
             neighbs0 = up1[10, :]
             neighbs0 = pc2[neighbs0, :] - p0
-            d2 = np.sum(neighbs0**2, axis=1)
+            d2 = np.sum(neighbs0 ** 2, axis=1)
 
             print(neighbs0.shape)
             print(neighbs0[:5])
@@ -1645,7 +1598,8 @@ def debug_upsampling(dataset, loader):
             print("******************")
         print("*******************************************")
 
-    flat_labels = np.concatenate(dataset.input_labels) if isinstance(dataset.input_labels[0], (list, np.ndarray)) else dataset.input_labels
+    flat_labels = np.concatenate(dataset.input_labels) if isinstance(dataset.input_labels[0],
+                                                                     (list, np.ndarray)) else dataset.input_labels
     _, counts = np.unique(flat_labels, return_counts=True)
     print(counts)
 
@@ -1690,14 +1644,14 @@ def debug_timing(dataset, loader):
                 )
 
         print("************* Epoch ended *************")
-        
-    flat_labels = np.concatenate(dataset.input_labels) if isinstance(dataset.input_labels[0], (list, np.ndarray)) else dataset.input_labels
+
+    flat_labels = np.concatenate(dataset.input_labels) if isinstance(dataset.input_labels[0],
+                                                                     (list, np.ndarray)) else dataset.input_labels
     _, counts = np.unique(flat_labels, return_counts=True)
     print(counts)
 
 
 def debug_show_clouds(dataset, loader):
-
     for epoch in range(10):
 
         clouds = []

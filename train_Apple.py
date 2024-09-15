@@ -26,7 +26,7 @@ import signal
 import os
 
 # Dataset
-from datasets.SensatUrban import *
+from datasets.Apple import *
 from torch.utils.data import DataLoader
 
 from utils.config import Config
@@ -41,7 +41,7 @@ from models.architectures import KPFCNN
 #
 
 
-class SensatUrbanConfig(Config):
+class AppleConfig(Config):
     """
     Override the parameters you want to modify for this dataset
     """
@@ -51,7 +51,7 @@ class SensatUrbanConfig(Config):
     ####################
 
     # Dataset name
-    dataset = "SensatUrban"
+    dataset = "Apple"
 
     # Number of classes in the dataset (This value is overwritten by dataset class when Initializating dataset).
     num_classes = None
@@ -124,10 +124,10 @@ class SensatUrbanConfig(Config):
     num_kernel_points = 15
 
     # Radius of the input sphere (decrease value to reduce memory cost)
-    in_radius = 4.0
+    in_radius = 0.05
 
     # Size of the first subsampling grid in meter (increase value to reduce memory cost)
-    first_subsampling_dl = 0.3
+    first_subsampling_dl = 0.005
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -168,7 +168,7 @@ class SensatUrbanConfig(Config):
     #####################
 
     # Maximal number of epochs
-    max_epoch = 50
+    max_epoch = 100
 
     # Learning rate management
     learning_rate = 1e-2
@@ -202,20 +202,11 @@ class SensatUrbanConfig(Config):
     #   > 'class': Each class has the same contribution (points are weighted according to class balance)
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
     segloss_balance = "class"
-    proportions = [0.2028088885,
-        0.2513084539,
-        0.3979947284,
-        0.0095143598,
-        0.0014058568,
-        0.0228332248,
-        0.0002303890,
-        0.0607027858,
-        0.0123139005,
-        0.0173409825,
-        0.0201929531,
-        0.0000803975,
-        0.0032730794]
+    proportions = [0.8976, # 48,434
+                   0.1024] # 5523 apple points out of 53,957 points
     class_w = np.sqrt([1.0 / p for p in proportions])
+    #class_w = array([1.05550083,3.125])
+
 
     # Do we nee to save convergence
     saving = True
@@ -279,7 +270,7 @@ if __name__ == "__main__":
     print("****************")
 
     # Initialize configuration class
-    config = SensatUrbanConfig()
+    config = AppleConfig()
     if previous_training_path:
         config.load(os.path.join("results", previous_training_path))
         config.saving_path = None
@@ -289,19 +280,19 @@ if __name__ == "__main__":
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = SensatUrbanDataset(config, set="training", use_potentials=True)
-    test_dataset = SensatUrbanDataset(config, set="validation", use_potentials=True)
+    training_dataset = AppleDataset(config, set="training", use_potentials=True)
+    test_dataset = AppleDataset(config, set="validation", use_potentials=True)
 
     # Initialize samplers
-    training_sampler = SensatUrbanSampler(training_dataset)
-    test_sampler = SensatUrbanSampler(test_dataset)
+    training_sampler = AppleSampler(training_dataset)
+    test_sampler = AppleSampler(test_dataset)
 
     # Initialize the dataloader
     training_loader = DataLoader(
         training_dataset,
         batch_size=1,
         sampler=training_sampler,
-        collate_fn=SensatUrbanCollate,
+        collate_fn=AppleCollate,
         num_workers=config.input_threads,
         pin_memory=True,
     )
@@ -309,7 +300,7 @@ if __name__ == "__main__":
         test_dataset,
         batch_size=1,
         sampler=test_sampler,
-        collate_fn=SensatUrbanCollate,
+        collate_fn=AppleCollate,
         num_workers=config.input_threads,
         pin_memory=True,
     )

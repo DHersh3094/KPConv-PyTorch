@@ -40,8 +40,8 @@ class Config:
     # Input parameters
     ##################
 
-    # Dataset name
-    dataset = ''
+    # Dataset name - Important
+    dataset = 'Apple'
 
     # Type of network model
     dataset_task = ''
@@ -90,7 +90,7 @@ class Config:
     num_kernel_points = 15
 
     # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.02
+    first_subsampling_dl = 0.03
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -175,7 +175,7 @@ class Config:
     max_epoch = 1000 # Starting point: 1000
 
     # Number of steps per epochs
-    epoch_steps = 1000
+    epoch_steps = 100
 
     # Number of validation examples per epoch
     validation_size = 100
@@ -185,7 +185,7 @@ class Config:
 
     # Do we nee to save convergence
     saving = True
-    saving_path = 'savingfromconfig/'
+    saving_path = None
 
     def __init__(self):
         """

@@ -27,7 +27,7 @@ import time
 import numpy as np
 import pickle
 import torch
-import yaml
+# import yaml
 from multiprocessing import Lock
 
 

@@ -46,8 +46,8 @@ from datasets.SemanticKitti import SemanticKittiDataset
 # Inputs
 
 # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
-log_start = 'Log_2024-09-15_08-35-29'
-log_end = 'Log_2024-09-15_08-49-49'
+log_start = 'Log_2024-09-15_17-54-35'
+log_end = 'Log_2024-09-15_17-54-35'
 
 # Name of the result path
 res_path = 'results'
