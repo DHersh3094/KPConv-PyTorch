@@ -35,6 +35,7 @@ from datasets.SensatUrban import *
 from datasets.SemanticKitti import *
 from datasets.Toronto3D import *
 from datasets.Apple import *
+from datasets.NeuesPalais import *
 from torch.utils.data import DataLoader
 
 from utils.config import Config
@@ -99,7 +100,8 @@ if __name__ == '__main__':
     #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
     #       > '(old_)results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
 
-    chosen_log = 'results/Log_2024-09-15_17-54-35'
+    # chosen_log = 'results/Log_2024-09-15_18-18-11'
+    chosen_log = "results/Log_2024-09-16_11-20-12"
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -188,6 +190,11 @@ if __name__ == '__main__':
         test_dataset = AppleDataset(config, set='validation', use_potentials=True)
         test_sampler = AppleSampler(test_dataset)
         collate_fn = AppleCollate
+
+    elif config.dataset == 'NeuesPalais':
+        test_dataset = NeuesPalaisDataset(config, set='validation', use_potentials=True)
+        test_sampler = NeuesPalaisSampler(test_dataset)
+        collate_fn = NeuesPalaisCollate
 
     elif config.dataset == 'SemanticKitti':
         test_dataset = SemanticKittiDataset(config, set=set, balance_classes=False)
