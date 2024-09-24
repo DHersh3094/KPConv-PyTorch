@@ -106,14 +106,21 @@ class AppleDataset(PointCloudDataset):
 
         # Proportion of validation scenes
         self.cloud_names = [
-            "branch_1",
-            "branch_2",
-            "branch_3"
+            "split_0_renamed",
+            "split_1_renamed",
+            "split_2_renamed",
+            "split_3_renamed",
+            "split_4_renamed"
+            # "split_4",
+            # "split_5"
+            # "branch_1",
+            # "branch_2",
+            # "branch_3"
         ]
         # 37 cloud files
         self.all_splits = [
             # Cambridge
-            0, 0, 1
+            0, 0, 0, 1, 1
             # 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
             # # Birmingham
             # 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0,

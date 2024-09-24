@@ -41,13 +41,17 @@ from datasets.ModelNet40 import ModelNet40Dataset
 from datasets.S3DIS import S3DISDataset
 from datasets.SensatUrban import SensatUrbanDataset 
 from datasets.SemanticKitti import SemanticKittiDataset
+from datasets.Apple import AppleDataset
 
 
 # Inputs
 
 # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
-log_start = 'Log_2024-09-15_17-54-35'
-log_end = 'Log_2024-09-15_17-54-35'
+log_start = 'Log_2024-09-22_11-28-57'
+log_end = 'Log_2024-09-22_11-28-57'
+
+log2_start = "Log_2024-09-17_08-10-53"
+log2_end = "Log_2024-09-17_08-10-53"
 
 # Name of the result path
 res_path = 'results'
@@ -236,7 +240,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     # Parameters
     # **********
 
-    plot_lr = True
+    plot_lr = False
     smooth_epochs = 0.5
     stride = 2
 
@@ -343,33 +347,34 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     ax.grid(linestyle='-.', which='both')
     # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
 
-    # Plot Times
-    # **********
-
-    # Figure
-    fig = plt.figure('time')
-    for i, label in enumerate(list_of_labels):
-        plt.plot(all_epochs[i], np.array(all_times[i]) / 3600, linewidth=1, label=label)
-
-    # Set names for axes
-    plt.xlabel('epochs')
-    plt.ylabel('time')
-    # plt.yscale('log')
-
-    # Display legends and title
-    plt.legend(loc=0)
-
-    # Customize the graph
-    ax = fig.gca()
-    ax.grid(linestyle='-.', which='both')
-    # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
-
-    # plt.savefig(os.path.join(plot_path, 'loss.png'))
-    # Show all
-    plt.show()
+    # # Plot Times
+    # # **********
+    #
+    # # Figure
+    # fig = plt.figure('time')
+    # for i, label in enumerate(list_of_labels):
+    #     plt.plot(all_epochs[i], np.array(all_times[i]) / 3600, linewidth=1, label=label)
+    #
+    # # Set names for axes
+    # plt.xlabel('epochs')
+    # plt.ylabel('time')
+    # # plt.yscale('log')
+    #
+    # # Display legends and title
+    # plt.legend(loc=0)
+    #
+    # # Customize the graph
+    # ax = fig.gca()
+    # ax.grid(linestyle='-.', which='both')
+    # # ax.set_yticks(np.arange(0.8, 1.02, 0.02))
+    #
+    # # plt.savefig(os.path.join(plot_path, 'loss.png'))
+    # # Show all
+    # plt.show()
 
 
 def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
+    print(f"List of paths: {list_of_paths}")
 
     # Parameters
     # **********
@@ -394,6 +399,7 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
 
     class_list = [dataset.label_to_names[label] for label in dataset.label_values
                   if label not in dataset.ignored_labels]
+    print(f"class_list: {class_list}")
 
     s = '{:^10}|'.format('mean')
     for c in class_list:
@@ -443,9 +449,10 @@ def compare_convergences_segment(dataset, list_of_paths, list_of_names=None):
     fig = plt.figure('mIoUs')
     for i, name in enumerate(list_of_names):
         p = plt.plot(all_pred_epochs[i], all_mIoUs[i], '--', linewidth=1, label=name)
-        plt.plot(all_snap_epochs[i], np.mean(all_snap_IoUs[i], axis=1), linewidth=1, color=p[-1].get_color())
+        # plt.plot(all_snap_epochs[i], np.mean(all_snap_IoUs[i], axis=1), linewidth=1, color=p[-1].get_color())
     plt.xlabel('epochs')
     plt.ylabel('IoU')
+    plt.title(f"{list_of_paths[0].split('/')[-1]} IoU")
 
     # Set limits for y axis
     #plt.ylim(0.55, 0.95)
@@ -598,7 +605,7 @@ def compare_convergences_classif(list_of_paths, list_of_labels=None):
     #    print(label, np.max(all_train_OA[i]), np.max(all_val_OA[i]))
 
     # Show all
-    plt.show()
+    # plt.show()
 
 
 def compare_convergences_SLAM(dataset, list_of_paths, list_of_names=None):
@@ -759,7 +766,7 @@ def experiment_name_1(res_path=res_path, log_start=log_start, log_end=log_end):
     return logs, logs_names
 
 
-def experiment_name_2():
+def experiment_name_2(res_path=res_path, start=log2_start, end=log2_end):
     """
     In this function you choose the results you want to plot together, to compare them as an experiment.
     Just return the list of log paths (like 'results/Log_2020-04-04_10-04-42' for example), and the associated names
@@ -768,8 +775,8 @@ def experiment_name_2():
     """
 
     # Using the dates of the logs, you can easily gather consecutive ones. All logs should be of the same dataset.
-    start = 'Log_2020-04-22_11-52-58'
-    end = 'Log_2020-05-22_11-52-58'
+    start = 'Log_2024-09-17_08-10-53'
+    end = 'Log_2024-09-17_08-10-53'
 
     # Name of the result path
     res_path = 'results'
@@ -779,7 +786,7 @@ def experiment_name_2():
 
     # Optionally add a specific log at a specific place in the log list
     logs = logs.astype('<U50')
-    logs = np.insert(logs, 0, 'results/Log_2020-04-04_10-04-42')
+    # logs = np.insert(logs, 0, 'results/Log_2024-09-17_08-10-53')
 
     # Give names to the logs (for plot legends)
     logs_names = ['name_log_inserted',
@@ -807,6 +814,7 @@ if __name__ == '__main__':
 
     # My logs: choose the logs to show
     logs, logs_names = experiment_name_1()
+    logs2, logs2_names = experiment_name_2()
 
     ################
     # Plot functions
@@ -843,10 +851,14 @@ if __name__ == '__main__':
         if config.dataset.startswith('SensatUrban'):
             dataset = SensatUrbanDataset(config, load_data=False)
             compare_convergences_segment(dataset, logs, logs_names)
+        if config.dataset.startswith('Apple'):
+            dataset = AppleDataset(config, load_data=False)
+            compare_convergences_segment(dataset, logs, logs_names)
     elif config.dataset_task == 'slam_segmentation':
         if config.dataset.startswith('SemanticKitti'):
             dataset = SemanticKittiDataset(config)
             compare_convergences_SLAM(dataset, logs, logs_names)
+
     else:
         raise ValueError('Unsupported dataset : ' + plot_dataset)
 

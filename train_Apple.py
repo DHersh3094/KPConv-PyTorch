@@ -121,19 +121,19 @@ class AppleConfig(Config):
     ###################
 
     # Number of kernel points
-    num_kernel_points = 15
+    num_kernel_points = 12
 
     # Radius of the input sphere (decrease value to reduce memory cost)
     in_radius = 0.05
 
     # Size of the first subsampling grid in meter (increase value to reduce memory cost)
-    first_subsampling_dl = 0.005
+    first_subsampling_dl = 0.002
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
 
     # Radius of deformable convolution in "number grid cell". Larger so that deformed kernel can spread out
-    deform_radius = 6.0
+    deform_radius = 10.0 # Start value: 6
 
     # Radius of the area of influence of each kernel point in "number grid cell". (1.0 is the standard value)
     KP_extent = 1.2
@@ -167,8 +167,10 @@ class AppleConfig(Config):
     # Training parameters
     #####################
 
-    # Maximal number of epochs
-    max_epoch = 100
+    # Maximal number of epochs: Set this in config instead
+    # max_epoch = 10
+    config = Config()
+    max_epoch = config.max_epoch
 
     # Learning rate management
     learning_rate = 1e-2
@@ -202,8 +204,8 @@ class AppleConfig(Config):
     #   > 'class': Each class has the same contribution (points are weighted according to class balance)
     #   > 'batch': Each cloud in the batch has the same contribution (points are weighted according cloud sizes)
     segloss_balance = "class"
-    proportions = [0.8976, # 48,434
-                   0.1024] # 5523 apple points out of 53,957 points
+    proportions = [0.95498180, # 48,434
+                   0.04501820] # 5523 apple points out of 53,957 points
     class_w = np.sqrt([1.0 / p for p in proportions])
     #class_w = array([1.05550083,3.125])
 
@@ -211,6 +213,9 @@ class AppleConfig(Config):
     # Do we nee to save convergence
     saving = True
     saving_path = None
+
+    import json
+    print(Config.__dict__)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
