@@ -306,7 +306,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
         # Figure
         fig = plt.figure('lr')
         for i, label in enumerate(list_of_labels):
-            plt.plot(all_epochs[i], all_lr[i], linewidth=1, label=label)
+            plt.plot(all_epochs[i], all_lr[i], linewidth=1) # label=label
 
         # Set names for axes
         plt.xlabel('epochs')
@@ -328,7 +328,7 @@ def compare_trainings(list_of_paths, list_of_labels=None):
     # Figure
     fig = plt.figure('loss')
     for i, label in enumerate(list_of_labels):
-        plt.plot(all_epochs[i], all_loss[i], linewidth=1, label=label)
+        plt.plot(all_epochs[i], all_loss[i], linewidth=1) # label=label
 
     # Set names for axes
     plt.xlabel('epochs')
@@ -762,6 +762,7 @@ def experiment_name_1(res_path=res_path, log_start=log_start, log_end=log_end):
 
     # safe check log names
     logs_names = np.array(logs_names[:len(logs)])
+    logs_names = None
 
     return logs, logs_names
 
@@ -795,7 +796,8 @@ def experiment_name_2(res_path=res_path, start=log2_start, end=log2_end):
                   'name_log_3']
 
     # safe check log names
-    logs_names = np.array(logs_names[:len(logs)])
+    # logs_names = np.array(logs_names[:len(logs)])
+    logs_names = None
 
     return logs, logs_names
 

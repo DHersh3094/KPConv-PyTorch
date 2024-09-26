@@ -87,10 +87,10 @@ class Config:
     ###################
 
     # Number of kernel points
-    num_kernel_points = 15
+    num_kernel_points = 9
 
     # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.03
+    first_subsampling_dl = 0.2
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -172,7 +172,7 @@ class Config:
     val_batch_num = 10
 
     # Maximal number of epochs
-    max_epoch = 1000 # Starting point: 1000
+    max_epoch = 200 # Starting point: 1000
 
     # Number of steps per epochs
     epoch_steps = 100
@@ -185,7 +185,7 @@ class Config:
 
     # Do we nee to save convergence
     saving = True
-    saving_path = None
+    saving_path = 'train_results'
 
     def __init__(self):
         """

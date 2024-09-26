@@ -121,7 +121,7 @@ class AppleConfig(Config):
     ###################
 
     # Number of kernel points
-    num_kernel_points = 12
+    num_kernel_points = 16
 
     # Radius of the input sphere (decrease value to reduce memory cost)
     in_radius = 0.05
