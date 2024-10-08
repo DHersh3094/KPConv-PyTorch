@@ -48,60 +48,27 @@ from utils.config import bcolors
 #       \******************************/
 
 
-class ModelNet40Dataset(PointCloudDataset):
+class NeuesPalaisTreesDataset(PointCloudDataset):
     """Class to handle Modelnet 40 dataset."""
 
     def __init__(self, config, train=True, orient_correction=True):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
-        PointCloudDataset.__init__(self, 'ModelNet40')
+        PointCloudDataset.__init__(self, 'NeuesPalaisTrees')
 
         ############
         # Parameters
         ############
 
         # Dict from labels to names
-        self.label_to_names = {0: 'airplane',
-                               1: 'bathtub',
-                               2: 'bed',
-                               3: 'bench',
-                               4: 'bookshelf',
-                               5: 'bottle',
-                               6: 'bowl',
-                               7: 'car',
-                               8: 'chair',
-                               9: 'cone',
-                               10: 'cup',
-                               11: 'curtain',
-                               12: 'desk',
-                               13: 'door',
-                               14: 'dresser',
-                               15: 'flower_pot',
-                               16: 'glass_box',
-                               17: 'guitar',
-                               18: 'keyboard',
-                               19: 'lamp',
-                               20: 'laptop',
-                               21: 'mantel',
-                               22: 'monitor',
-                               23: 'night_stand',
-                               24: 'person',
-                               25: 'piano',
-                               26: 'plant',
-                               27: 'radio',
-                               28: 'range_hood',
-                               29: 'sink',
-                               30: 'sofa',
-                               31: 'stairs',
-                               32: 'stool',
-                               33: 'table',
-                               34: 'tent',
-                               35: 'toilet',
-                               36: 'tv_stand',
-                               37: 'vase',
-                               38: 'wardrobe',
-                               39: 'xbox'}
+        self.label_to_names = {0: 'Acerpseudoplatanus',
+                               1: 'Aesculushippocastanum',
+                               2: 'Platanusxacerifolia',
+                               3: 'QuercusroburFastigiata',
+                               4: 'Tiliacordata',
+                               5: 'Tiliaxintermedia'
+                               }
 
         # Initialize a bunch of variables concerning class labels
         self.init_labels()
@@ -110,7 +77,7 @@ class ModelNet40Dataset(PointCloudDataset):
         self.ignored_labels = np.array([])
 
         # Dataset folder
-        self.path = '../Data/ModelNet40'
+        self.path = '../Data/NeuesPalaisTrees'
 
         # Type of task conducted on this dataset
         self.dataset_task = 'classification'
@@ -127,13 +94,13 @@ class ModelNet40Dataset(PointCloudDataset):
 
         # Number of models and models used per epoch
         if self.train:
-            self.num_models = 9843
+            self.num_models = 26
             if config.epoch_steps and config.epoch_steps * config.batch_num < self.num_models:
                 self.epoch_n = config.epoch_steps * config.batch_num
             else:
                 self.epoch_n = self.num_models
         else:
-            self.num_models = 2468
+            self.num_models = 10
             self.epoch_n = min(self.num_models, config.validation_size * config.batch_num)
 
         #############
@@ -252,9 +219,9 @@ class ModelNet40Dataset(PointCloudDataset):
 
             # Collect training file names
             if self.train:
-                names = np.loadtxt(join(self.path, 'modelnet40_train.txt'), dtype=str)
+                names = np.loadtxt(join(self.path, 'train.txt'), dtype=str)
             else:
-                names = np.loadtxt(join(self.path, 'modelnet40_test.txt'), dtype=str)
+                names = np.loadtxt(join(self.path, 'test.txt'), dtype=str)
 
             # Initialize containers
             input_points = []
@@ -319,10 +286,10 @@ class ModelNet40Dataset(PointCloudDataset):
 #       \********************************/
 
 
-class ModelNet40Sampler(Sampler):
-    """Sampler for ModelNet40"""
+class NeuesPalaisTrees(Sampler):
+    """Sampler for NeuesPalaisTrees"""
 
-    def __init__(self, dataset: ModelNet40Dataset, use_potential=True, balance_labels=False):
+    def __init__(self, dataset: NeuesPalaisTreesDataset, use_potential=True, balance_labels=False):
         Sampler.__init__(self, dataset)
 
         # Does the sampler use potential for regular sampling
@@ -678,7 +645,7 @@ class ModelNet40Sampler(Sampler):
         return
 
 
-class ModelNet40CustomBatch:
+class NeuesPalaisTreesCustomBatch:
     """Custom batch definition with memory pinning for ModelNet40"""
 
     def __init__(self, input_list):
@@ -805,8 +772,8 @@ class ModelNet40CustomBatch:
         return all_p_list
 
 
-def ModelNet40Collate(batch_data):
-    return ModelNet40CustomBatch(batch_data)
+def NeuesPalaisTreesCollate(batch_data):
+    return NeuesPalaisTreesCustomBatch(batch_data)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -968,7 +935,7 @@ def debug_batch_and_neighbors_calib(dataset, sampler, loader):
     print(counts)
 
 
-class ModelNet40WorkerInitDebug:
+class NeuesPalaisTreesWorkerInitDebug:
     """Callable class that Initializes workers."""
 
     def __init__(self, dataset):

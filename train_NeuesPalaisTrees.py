@@ -30,6 +30,7 @@ import torch
 
 # Dataset
 from datasets.ModelNet40 import *
+from datasets.NeuesPalaisTrees import *
 from torch.utils.data import DataLoader
 
 from utils.config import Config
@@ -43,7 +44,7 @@ from models.architectures import KPCNN
 #       \******************/
 #
 
-class Modelnet40Config(Config):
+class NeuesPalaisTreesConfig(Config):
     """
     Override the parameters you want to modify for this dataset
     """
@@ -53,7 +54,7 @@ class Modelnet40Config(Config):
     ####################
 
     # Dataset name
-    dataset = 'ModelNet40'
+    dataset = 'NeuesPalaisTrees'
 
     # Number of classes in the dataset (This value is overwritten by dataset class when Initializating dataset).
     num_classes = None
@@ -226,7 +227,7 @@ if __name__ == '__main__':
     print('****************')
 
     # Initialize configuration class
-    config = Modelnet40Config()
+    config = NeuesPalaisTreesConfig()
     if previous_training_path:
         config.load(os.path.join('results', previous_training_path))
         config.saving_path = None
@@ -236,24 +237,24 @@ if __name__ == '__main__':
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = ModelNet40Dataset(config, train=True)
-    test_dataset = ModelNet40Dataset(config, train=False)
+    training_dataset = NeuesPalaisTreesDataset(config, train=True)
+    test_dataset = NeuesPalaisTreesDataset(config, train=False)
 
     # Initialize samplers
-    training_sampler = ModelNet40Sampler(training_dataset, balance_labels=True)
-    test_sampler = ModelNet40Sampler(test_dataset, balance_labels=True)
+    training_sampler = NeuesPalaisTrees(training_dataset, balance_labels=True)
+    test_sampler = NeuesPalaisTrees(test_dataset, balance_labels=True)
 
     # Initialize the dataloader
     training_loader = DataLoader(training_dataset,
                                  batch_size=1,
                                  sampler=training_sampler,
-                                 collate_fn=ModelNet40Collate,
+                                 collate_fn=NeuesPalaisTreesCollate,
                                  num_workers=config.input_threads,
                                  pin_memory=True)
     test_loader = DataLoader(test_dataset,
                              batch_size=1,
                              sampler=test_sampler,
-                             collate_fn=ModelNet40Collate,
+                             collate_fn=NeuesPalaisTreesCollate,
                              num_workers=config.input_threads,
                              pin_memory=True)
 
