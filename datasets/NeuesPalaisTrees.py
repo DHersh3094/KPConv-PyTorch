@@ -252,7 +252,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                                                        sampleDl=self.config.first_subsampling_dl)
                 else:
                     points = data[:, :3]
-                    normals = data[:, 3:]
+                    normals = data[:, 3:6]
 
                 print('', end='\r')
                 print(fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N), end='', flush=True)
