@@ -36,6 +36,7 @@ from datasets.SemanticKitti import *
 from datasets.Toronto3D import *
 from datasets.Apple import *
 from datasets.NeuesPalais import *
+from datasets.NeuesPalaisTrees import *
 from torch.utils.data import DataLoader
 
 from utils.config import Config
@@ -102,7 +103,7 @@ if __name__ == '__main__':
 
     # chosen_log = 'results/Log_2024-09-15_18-18-11'
     # chosen_log = "results/Log_2024-09-17_13-07-55"
-    chosen_log = "results/Log_2024-09-22_11-28-57"
+    chosen_log = "results/Log_2024-10-10_11-30-55"
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -174,6 +175,10 @@ if __name__ == '__main__':
         test_dataset = ModelNet40Dataset(config, train=False)
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
+    if config.dataset == 'NeuesPalaisTrees':
+        test_dataset = NeuesPalaisTreesDataset(config, train=False)
+        test_sampler = NeuesPalaisTreesSampler(test_dataset)
+        collate_fn = NeuesPalaisTreesCollate
     elif config.dataset == 'S3DIS':
         test_dataset = S3DISDataset(config, set='validation', use_potentials=True)
         test_sampler = S3DISSampler(test_dataset)

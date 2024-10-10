@@ -171,7 +171,7 @@ class NeuesPalaisTreesConfig(Config):
 
     # Do we nee to save convergence
     saving = True
-    saving_path = None
+    saving_path = 'saving_path_results'
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -241,8 +241,8 @@ if __name__ == '__main__':
     test_dataset = NeuesPalaisTreesDataset(config, train=False)
 
     # Initialize samplers
-    training_sampler = NeuesPalaisTrees(training_dataset, balance_labels=True)
-    test_sampler = NeuesPalaisTrees(test_dataset, balance_labels=True)
+    training_sampler = NeuesPalaisTreesSampler(training_dataset, balance_labels=True)
+    test_sampler = NeuesPalaisTreesSampler(test_dataset, balance_labels=True)
 
     # Initialize the dataloader
     training_loader = DataLoader(training_dataset,

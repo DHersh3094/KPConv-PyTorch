@@ -62,13 +62,18 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         ############
 
         # Dict from labels to names
-        self.label_to_names = {0: 'Acerpseudoplatanus',
-                               1: 'Aesculushippocastanum',
-                               2: 'Platanusxacerifolia',
-                               3: 'QuercusroburFastigiata',
-                               4: 'Tiliacordata',
-                               5: 'Tiliaxintermedia'
-                               }
+        self.label_to_names = {
+    0: "Acerpseudoplatanustile",
+    1: "Aesculushippocastanumtile",
+    2: "Fagussylvatica",
+    3: "FagussylvaticaAtropunicea",
+    4: "Platanusxacerifoliatile",
+    5: "Quercusrober",
+    6: "QuercusroburFastigiatatile",
+    7: "Tiliacordatatile",
+    8: "Tiliaxintermedia",
+    9: "Tiliaxintermediatile"
+}
 
         # Initialize a bunch of variables concerning class labels
         self.init_labels()
@@ -94,13 +99,13 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         # Number of models and models used per epoch
         if self.train:
-            self.num_models = 26
+            self.num_models = 43
             if config.epoch_steps and config.epoch_steps * config.batch_num < self.num_models:
                 self.epoch_n = config.epoch_steps * config.batch_num
             else:
                 self.epoch_n = self.num_models
         else:
-            self.num_models = 10
+            self.num_models = 11
             self.epoch_n = min(self.num_models, config.validation_size * config.batch_num)
 
         #############
@@ -286,7 +291,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 #       \********************************/
 
 
-class NeuesPalaisTrees(Sampler):
+class NeuesPalaisTreesSampler(Sampler):
     """Sampler for NeuesPalaisTrees"""
 
     def __init__(self, dataset: NeuesPalaisTreesDataset, use_potential=True, balance_labels=False):

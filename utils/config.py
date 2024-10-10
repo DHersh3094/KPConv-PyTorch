@@ -41,10 +41,10 @@ class Config:
     ##################
 
     # Dataset name - Important
-    dataset = 'Apple'
+    dataset = 'NeuesPalaisTrees'
 
     # Type of network model
-    dataset_task = ''
+    dataset_task = 'classification'
 
     # Number of classes in the dataset
     num_classes = 0
@@ -53,7 +53,7 @@ class Config:
     in_points_dim = 3
 
     # Dimension of input features
-    in_features_dim = 1
+    in_features_dim = 4
 
     # Radius of the input sphere (ignored for models, only used for point clouds)
     in_radius = 1.0
@@ -90,7 +90,7 @@ class Config:
     num_kernel_points = 9
 
     # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.2
+    first_subsampling_dl = 0
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
