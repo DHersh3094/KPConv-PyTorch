@@ -53,7 +53,7 @@ class ModelTester:
     # Initialization methods
     # ------------------------------------------------------------------------------------------------------------------
 
-    def __init__(self, net, chkp_path=None, on_gpu=True):
+    def __init__(self, net, chkp_path=None, on_gpu=True, output_folder=None):
 
         ############
         # Parameters
@@ -82,7 +82,11 @@ class ModelTester:
     # ------------------------------------------------------------------------------------------------------------------
 
     def classification_test(self, net, test_loader, config, num_votes=100, debug=False):
-
+        import os
+        import numpy as np
+        output_folder = self.output_folder + '/test'
+        if not os.path.exists(output_folder):
+            os.mkdir(output_folder)
         ############
         # Initialize
         ############
@@ -170,6 +174,11 @@ class ModelTester:
 
             ACC = 100 * np.sum(np.diag(C1)) / (np.sum(C1) + 1e-6)
             print('Test Accuracy = {:.1f}%'.format(ACC))
+
+            iteration = int(np.min(self.test_counts))
+            c1_path = os.path.join(output_folder, f'Confusion_matrix_vote_{iteration}.npy')
+            np.save(c1_path, C1)
+            print(f"Saved confusion matrix for {iteration}")
 
         return
 
