@@ -90,7 +90,7 @@ class Config:
     num_kernel_points = 9
 
     # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0
+    first_subsampling_dl = 0.75
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
