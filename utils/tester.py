@@ -54,7 +54,7 @@ class ModelTester:
     # ------------------------------------------------------------------------------------------------------------------
 
     def __init__(self, net, chkp_path=None, on_gpu=True, output_folder=None):
-
+        self.output_folder = output_folder
         ############
         # Parameters
         ############
@@ -84,8 +84,10 @@ class ModelTester:
     def classification_test(self, net, test_loader, config, num_votes=100, debug=False):
         import os
         import numpy as np
-        output_folder = self.output_folder + '/test'
+        output_folder = self.output_folder
+        output_folder = output_folder + '/test'
         if not os.path.exists(output_folder):
+            import os
             os.mkdir(output_folder)
         ############
         # Initialize
