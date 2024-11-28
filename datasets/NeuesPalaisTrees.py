@@ -63,16 +63,19 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         # Dict from labels to names
         self.label_to_names = {
-    0: "Acerpseudoplatanustile",
-    1: "Aesculushippocastanumtile",
-    2: "Fagussylvatica",
-    3: "FagussylvaticaAtropunicea",
-    4: "Platanusxacerifoliatile",
-    5: "Quercusrober",
-    6: "QuercusroburFastigiatatile",
-    7: "Tiliacordatatile",
-    8: "Tiliaxintermedia",
-    9: "Tiliaxintermediatile"
+    0: "Fagsyl",
+    1: "Picabi",
+    2: "Pinsyl",
+    3: "Psemen",
+    4: "Querub"
+    # 2: "Fagussylvatica",
+    # 3: "FagussylvaticaAtropunicea",
+    # 4: "Platanusxacerifoliatile",
+    # 5: "Quercusrober",
+    # 6: "QuercusroburFastigiatatile",
+    # 7: "Tiliacordatatile",
+    # 8: "Tiliaxintermedia",
+    # 9: "Tiliaxintermediatile"
 }
 
         # Initialize a bunch of variables concerning class labels
@@ -82,7 +85,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         self.ignored_labels = np.array([])
 
         # Dataset folder
-        self.path = '../Data/NeuesPalaisTrees'
+        self.path = '../Data/NeuesPalaisTrees_v30'
 
         # Type of task conducted on this dataset
         self.dataset_task = 'classification'
@@ -99,13 +102,13 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         # Number of models and models used per epoch
         if self.train:
-            self.num_models = 43
+            self.num_models = 3030
             if config.epoch_steps and config.epoch_steps * config.batch_num < self.num_models:
                 self.epoch_n = config.epoch_steps * config.batch_num
             else:
                 self.epoch_n = self.num_models
         else:
-            self.num_models = 11
+            self.num_models = 762
             self.epoch_n = min(self.num_models, config.validation_size * config.batch_num)
 
         #############
@@ -252,7 +255,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                                                        sampleDl=self.config.first_subsampling_dl)
                 else:
                     points = data[:, :3]
-                    normals = data[:, 3:6]
+                    normals = data[:, 3:]
 
                 print('', end='\r')
                 print(fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N), end='', flush=True)
