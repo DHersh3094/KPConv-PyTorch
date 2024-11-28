@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
     # chosen_log = 'results/Log_2024-09-15_18-18-11'
     # chosen_log = "results/Log_2024-09-17_13-07-55"
-    chosen_log = "results/Log_2024-10-10_11-30-55"
+    chosen_log = "Nov28_v30_v5_.75subsample"
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -234,7 +234,7 @@ if __name__ == '__main__':
         raise ValueError('Unsupported dataset_task for testing: ' + config.dataset_task)
 
     # Define a visualizer class
-    tester = ModelTester(net, chkp_path=chosen_chkp)
+    tester = ModelTester(net, chkp_path=chosen_chkp, output_folder=chosen_log)
     print('Done in {:.1f}s\n'.format(time.time() - t1))
 
     print('\nStart test')
