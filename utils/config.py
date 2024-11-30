@@ -179,6 +179,7 @@ class Config:
 
     # Number of validation examples per epoch
     validation_size = 100
+    test_size = 100
 
     # Number of epoch between each checkpoint
     checkpoint_gap = 50
