@@ -134,7 +134,7 @@ class NeuesPalaisTreesConfig(Config):
     #####################
 
     # Maximal number of epochs
-    max_epoch = 100
+    max_epoch = 10
 
     # Learning rate management
     learning_rate = 1e-2
@@ -172,7 +172,7 @@ class NeuesPalaisTreesConfig(Config):
 
     # # Do we nee to save convergence
     saving = True
-    saving_path = 'Nov28_v30_v5_.75subsample'
+    saving_path = 'Nov28_v32_v1'
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -238,11 +238,13 @@ if __name__ == '__main__':
         config.saving_path = sys.argv[1]
 
     # Initialize datasets
-    training_dataset = NeuesPalaisTreesDataset(config, train=True)
-    test_dataset = NeuesPalaisTreesDataset(config, train=False)
+    training_dataset = NeuesPalaisTreesDataset(config, mode='train')
+    val_dataset = NeuesPalaisTreesDataset(config, mode='val')
+    test_dataset = NeuesPalaisTreesDataset(config, mode='test')
 
     # Initialize samplers
     training_sampler = NeuesPalaisTreesSampler(training_dataset, balance_labels=True)
+    val_sampler = NeuesPalaisTreesSampler(val_dataset, balance_labels=True)
     test_sampler = NeuesPalaisTreesSampler(test_dataset, balance_labels=True)
 
     # Initialize the dataloader
@@ -252,6 +254,12 @@ if __name__ == '__main__':
                                  collate_fn=NeuesPalaisTreesCollate,
                                  num_workers=config.input_threads,
                                  pin_memory=True)
+    val_loader = DataLoader(val_dataset,
+                            batch_size=1,
+                            sampler=val_sampler,
+                            collate_fn=NeuesPalaisTreesCollate,
+                            num_workers=config.input_threads,
+                            pin_memory=True)
     test_loader = DataLoader(test_dataset,
                              batch_size=1,
                              sampler=test_sampler,
@@ -261,6 +269,7 @@ if __name__ == '__main__':
 
     # Calibrate samplers
     training_sampler.calibration(training_loader)
+    val_sampler.calibration(val_loader)
     test_sampler.calibration(test_loader)
 
     #debug_timing(test_dataset, test_sampler, test_loader)
@@ -282,7 +291,7 @@ if __name__ == '__main__':
 
     # Training
     try:
-        trainer.train(net, training_loader, test_loader, config)
+        trainer.train(net, training_loader, val_loader, config)
     except:
         print('Caught an error')
         os.kill(os.getpid(), signal.SIGINT)
