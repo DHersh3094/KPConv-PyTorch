@@ -51,7 +51,7 @@ from utils.config import bcolors
 class NeuesPalaisTreesDataset(PointCloudDataset):
     """Class to handle Modelnet 40 dataset."""
 
-    def __init__(self, config, train=True, orient_correction=True):
+    def __init__(self, config, mode="train", orient_correction=True):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -67,7 +67,8 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
     1: "Picabi",
     2: "Pinsyl",
     3: "Psemen",
-    4: "Querub"
+    4: "Quepet",
+    5: "Querub"
     # 2: "Fagussylvatica",
     # 3: "FagussylvaticaAtropunicea",
     # 4: "Platanusxacerifoliatile",
@@ -85,7 +86,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         self.ignored_labels = np.array([])
 
         # Dataset folder
-        self.path = '../Data/NeuesPalaisTrees_v30'
+        self.path = '../Data/NeuesPalaisTrees_v32'
 
         # Type of task conducted on this dataset
         self.dataset_task = 'classification'
@@ -98,18 +99,22 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         self.config = config
 
         # Training or test set
-        self.train = train
+        # self.train = train
+        self.mode = mode
 
         # Number of models and models used per epoch
-        if self.train:
-            self.num_models = 3030
+        if self.mode == 'train':
+            self.num_models = 4416 # number of files in train.txt
             if config.epoch_steps and config.epoch_steps * config.batch_num < self.num_models:
                 self.epoch_n = config.epoch_steps * config.batch_num
             else:
                 self.epoch_n = self.num_models
-        else:
-            self.num_models = 762
+        elif self.mode == 'val':
+            self.num_models = 552
             self.epoch_n = min(self.num_models, config.validation_size * config.batch_num)
+        else:
+            self.num_models = 552
+            self.epoch_n = min(self.num_models, config.test_size * config.batch_num)
 
         #############
         # Load models
@@ -210,8 +215,10 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         t0 = time.time()
 
         # Load wanted points if possible
-        if self.train:
-            split ='training'
+        if self.mode == 'train':
+            split ='train'
+        elif self.mode == 'val':
+            split = 'val'
         else:
             split = 'test'
 
@@ -226,8 +233,10 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         else:
 
             # Collect training file names
-            if self.train:
+            if self.mode == 'train':
                 names = np.loadtxt(join(self.path, 'train.txt'), dtype=str)
+            elif self.mode == 'val':
+                names = np.loadtxt(join(self.path, 'val.txt'), dtype=str)
             else:
                 names = np.loadtxt(join(self.path, 'test.txt'), dtype=str)
 
