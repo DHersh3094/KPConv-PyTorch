@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
     # chosen_log = 'results/Log_2024-09-15_18-18-11'
     # chosen_log = "results/Log_2024-09-17_13-07-55"
-    chosen_log = "Nov28_v30_v5_.75subsample"
+    chosen_log = "Nov28_v32_v1"
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -176,7 +176,7 @@ if __name__ == '__main__':
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
     if config.dataset == 'NeuesPalaisTrees':
-        test_dataset = NeuesPalaisTreesDataset(config, train=False)
+        test_dataset = NeuesPalaisTreesDataset(config, mode='test')
         test_sampler = NeuesPalaisTreesSampler(test_dataset)
         collate_fn = NeuesPalaisTreesCollate
     elif config.dataset == 'S3DIS':
