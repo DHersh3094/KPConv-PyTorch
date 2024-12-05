@@ -71,20 +71,16 @@ class NeuesPalaisTreesConfig(Config):
 
     # Define layers
     architecture = ['simple',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'resnetb_strided',
-                    'resnetb',
-                    'resnetb',
-                    'global_average']
+                'resnetb',
+                'resnetb_strided',
+                'resnetb',
+                'resnetb_strided',
+                'resnetb',
+                'resnetb_strided',
+                'resnetb_deformable',
+                'resnetb_deformable_strided',
+                'resnetb_deformable',
+                'global_average']
 
     ###################
     # KPConv parameters
@@ -94,7 +90,7 @@ class NeuesPalaisTreesConfig(Config):
     num_kernel_points = 15
 
     # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.5
+    first_subsampling_dl = 0.8
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -146,7 +142,7 @@ class NeuesPalaisTreesConfig(Config):
     batch_num = 10
 
     # Number of steps per epochs
-    epoch_steps = 200
+    epoch_steps = 100
 
     # Number of validation examples per epoch
     validation_size = 32
@@ -172,7 +168,7 @@ class NeuesPalaisTreesConfig(Config):
 
     # # Do we nee to save convergence
     saving = True
-    saving_path = 'Nov28_v32_v1'
+    saving_path = 'Dec5_v33_deformable_0.8'
 
 
 # ----------------------------------------------------------------------------------------------------------------------
