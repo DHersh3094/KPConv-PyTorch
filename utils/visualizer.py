@@ -86,7 +86,7 @@ class ModelVisualizer:
                 k = k.replace('blocs', 'blocks')
             new_dict[k] = v
 
-        net.load_state_dict(new_dict)
+        net.load_state_dict(new_dict, strict=False)
         self.epoch = checkpoint['epoch']
         net.eval()
         print("\nModel state restored from {:s}.".format(chkp_path))
