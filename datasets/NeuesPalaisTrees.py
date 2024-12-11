@@ -51,7 +51,7 @@ from utils.config import bcolors
 class NeuesPalaisTreesDataset(PointCloudDataset):
     """Class to handle Modelnet 40 dataset."""
 
-    def __init__(self, config, mode="train", orient_correction=True):
+    def __init__(self, config, mode="train", orient_correction=False):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -92,6 +92,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         # Type of task conducted on this dataset
         self.dataset_task = 'classification'
 
+
         # Update number of class and data task in configuration
         config.num_classes = self.num_classes
         config.dataset_task = self.dataset_task
@@ -102,6 +103,9 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         # Training or test set
         # self.train = train
         self.mode = mode
+
+        # Do subsample flag
+        self.do_subsample = config.do_subsample
 
         # Number of models and models used per epoch
         if self.mode == 'train':
@@ -223,8 +227,13 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         else:
             split = 'test'
 
-        print('\nLoading {:s} points subsampled at {:.3f}'.format(split, self.config.first_subsampling_dl))
-        filename = join(self.path, '{:s}_{:.3f}_record.pkl'.format(split, self.config.first_subsampling_dl))
+        if self.do_subsample:
+            print('\nLoading {:s} points subsampled at {:.3f}'.format(split, self.config.first_subsampling_dl))
+            filename = join(self.path, '{:s}_{:.3f}_record.pkl'.format(split, self.config.first_subsampling_dl))
+        else:
+            subsample_parameter = 0.0
+            print('\nLoading {:s} points subsampled at {:.3f}'.format(split, subsample_parameter))
+            filename = join(self.path, '{:s}_{:.3f}_record.pkl'.format(split, subsample_parameter))
 
         if exists(filename):
             with open(filename, 'rb') as file:
@@ -261,11 +270,13 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 data = np.loadtxt(txt_file, delimiter=',', dtype=np.float32)
 
                 # Subsample them
-                if self.config.first_subsampling_dl > 0:
+                if self.config.first_subsampling_dl > 0 and self.do_subsample:
                     points, normals = grid_subsampling(data[:, :3],
                                                        features=data[:, 3:],
                                                        sampleDl=self.config.first_subsampling_dl)
                 else:
+                    # print(f'Loading PCs not subsampled')
+                    # print(f'Data shape: {data.shape}')
                     points = data[:, :3]
                     normals = data[:, 3:]
 

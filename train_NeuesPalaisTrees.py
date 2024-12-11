@@ -82,7 +82,7 @@ class NeuesPalaisTreesConfig(Config):
                 'resnetb_deformable',
                 'global_average']
 
-    ###################
+    ###################c
     # KPConv parameters
     ###################
 
@@ -90,7 +90,8 @@ class NeuesPalaisTreesConfig(Config):
     num_kernel_points = 15
 
     # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.8
+    first_subsampling_dl = 0.2
+    do_subsample = False
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -130,7 +131,7 @@ class NeuesPalaisTreesConfig(Config):
     #####################
 
     # Maximal number of epochs
-    max_epoch = 10
+    max_epoch = 50
 
     # Learning rate management
     learning_rate = 1e-2
@@ -152,12 +153,12 @@ class NeuesPalaisTreesConfig(Config):
     checkpoint_gap = 50
 
     # Augmentations
-    augment_scale_anisotropic = True
-    augment_symmetries = [True, True, True]
+    augment_scale_anisotropic = False
+    augment_symmetries = [False, False, False]
     augment_rotation = 'none'
-    augment_scale_min = 0.8
-    augment_scale_max = 1.2
-    augment_noise = 0.001
+    augment_scale_min = 1.0
+    augment_scale_max = 1.0
+    augment_noise = 0
     augment_color = 1.0
 
     # The way we balance segmentation loss
@@ -168,7 +169,7 @@ class NeuesPalaisTreesConfig(Config):
 
     # # Do we nee to save convergence
     saving = True
-    saving_path = 'Dec5_v33_deformable_0.8'
+    saving_path = 'Dec11_v33_0.2subsample'
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -235,7 +236,7 @@ if __name__ == '__main__':
 
     # Initialize datasets
     training_dataset = NeuesPalaisTreesDataset(config, mode='train')
-    val_dataset = NeuesPalaisTreesDataset(config, mode='val')
+    val_dataset = NeuesPalaisTreesDataset(config, mode='test')
     test_dataset = NeuesPalaisTreesDataset(config, mode='test')
 
     # Initialize samplers
