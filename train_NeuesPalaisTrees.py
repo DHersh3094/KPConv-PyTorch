@@ -27,6 +27,7 @@ import os
 import numpy as np
 import sys
 import torch
+# from numba.cuda.libdevicedecl import args
 
 # Dataset
 from datasets.ModelNet40 import *
@@ -90,7 +91,7 @@ class NeuesPalaisTreesConfig(Config):
     num_kernel_points = 15
 
     # Size of the first subsampling grid in meter
-    first_subsampling_dl = 0.2
+    first_subsampling_dl = 0.4
     do_subsample = False
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
@@ -169,7 +170,7 @@ class NeuesPalaisTreesConfig(Config):
 
     # # Do we nee to save convergence
     saving = True
-    saving_path = 'Dec11_v33_0.2subsample'
+    saving_path = 'Dec11_v33_0.4subsample_kpsubsample_0.4'
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -179,6 +180,17 @@ class NeuesPalaisTreesConfig(Config):
 #
 
 if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--do_subsample', action='store_false', help='Enable subsampling or not')
+    parser.add_argument('--first_subsampling_dl', type=float, default=None, help='The KPConv subsampling value')
+    parser.add_argument('--max_epoch', type=int, default=None, help='Override max epoch')
+    parser.add_argument('--data_path', type=str, default=None, help='Data path')
+    parser.add_argument('--saving_path', type=str, default=None, help='Saving path')
+
+    args = parser.parse_args()
 
     ############################
     # Initialize the environment
@@ -226,13 +238,32 @@ if __name__ == '__main__':
 
     # Initialize configuration class
     config = NeuesPalaisTreesConfig()
+
+    # Parse args
+
+    if args.max_epoch is not None:
+        config.max_epoch = args.max_epoch
+        print(f'Using max_epoch from parser: {config.max_epoch}')
+
+    # Path to input data
+    if args.data_path is not None:
+        config.path = args.data_path
+
+    # Path to saving
+    if args.saving_path is not None:
+        config.saving_path = args.saving_path
+        print(f'Saving to path: {config.saving_path}')
+
+    if args.first_subsampling_dl is not None:
+        config.first_subsampling_dl = args.first_subsampling_dl
+
     if previous_training_path:
         config.load(os.path.join('results', previous_training_path))
         config.saving_path = None
 
     # Get path from argument if given
-    if len(sys.argv) > 1:
-        config.saving_path = sys.argv[1]
+    # if len(sys.argv) > 1:
+    #     config.saving_path = sys.argv[1]
 
     # Initialize datasets
     training_dataset = NeuesPalaisTreesDataset(config, mode='train')
