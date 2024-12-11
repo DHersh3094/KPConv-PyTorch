@@ -63,12 +63,12 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         # Dict from labels to names
         self.label_to_names = {
-    0: "Fagsyl",
-    1: "Picabi",
-    2: "Pinsyl",
-    3: "Psemen",
-    4: "Quepet",
-    5: "Querub"
+    0: "FagSyl",
+    1: "PicAbi",
+    2: "PinSyl",
+    3: "PseMen",
+    4: "QuePet",
+    5: "QueRub"
     # 2: "Fagussylvatica",
     # 3: "FagussylvaticaAtropunicea",
     # 4: "Platanusxacerifoliatile",
@@ -86,7 +86,8 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         self.ignored_labels = np.array([])
 
         # Dataset folder
-        self.path = '../Data/NeuesPalaisTrees_v32'
+        # self.path = '../Data/NeuesPalaisTrees_v32'
+        self.path = '/media/davidhersh/T7 Shield/Datasets/data_1'
 
         # Type of task conducted on this dataset
         self.dataset_task = 'classification'
@@ -104,7 +105,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         # Number of models and models used per epoch
         if self.mode == 'train':
-            self.num_models = 4416 # number of files in train.txt
+            self.num_models = 2208 # number of files in train.txt
             if config.epoch_steps and config.epoch_steps * config.batch_num < self.num_models:
                 self.epoch_n = config.epoch_steps * config.batch_num
             else:
@@ -253,7 +254,9 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
             for i, cloud_name in enumerate(names):
 
                 # Read points
-                class_folder = '_'.join(cloud_name.split('_')[:-1])
+                # class_folder = '_'.join(cloud_name.split('_')[:-1])
+                class_folder = cloud_name.split('_')[0]
+                # print(f'Class folder: {class_folder}\n')
                 txt_file = join(self.path, class_folder, cloud_name) + '.txt'
                 data = np.loadtxt(txt_file, delimiter=',', dtype=np.float32)
 
@@ -278,7 +281,8 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
             print()
 
             # Get labels
-            label_names = ['_'.join(name.split('_')[:-1]) for name in names]
+            # label_names = ['_'.join(name.split('_')[:-1]) for name in names]
+            label_names = [name.split('_')[0] for name in names]
             input_labels = np.array([self.name_to_label[name] for name in label_names])
 
             # Save for later use
