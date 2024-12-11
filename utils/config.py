@@ -91,6 +91,7 @@ class Config:
 
     # Size of the first subsampling grid in meter
     first_subsampling_dl = 0.75
+    do_subsample = False
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -157,7 +158,7 @@ class Config:
     segloss_balance = 'none'
 
     # Choose weights for class (used in segmentation loss). Empty list for no weights
-    class_w = []
+    class_w = [0.52646638, 0.78632479, 1.10510511, 1.27777778, 1.59307359, 1.94708995]
 
     # Deformable offset loss
     # 'point2point' fitting geometry by penalizing distance from deform point to input points
