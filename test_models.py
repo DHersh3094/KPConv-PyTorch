@@ -91,6 +91,8 @@ def model_choice(chosen_log):
 #
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
 
     ###############################
     # Choose the model to visualize
@@ -103,7 +105,14 @@ if __name__ == '__main__':
 
     # chosen_log = 'results/Log_2024-09-15_18-18-11'
     # chosen_log = "results/Log_2024-09-17_13-07-55"
-    chosen_log = "Nov28_v32_v1"
+    # chosen_log = "Dec11_v33_0.4subsample_kpsubsample_0.4"
+    parser.add_argument('--results_path', type=str, default=None, help='Results path')
+    # parser.add_argument('--test_saving_path', type=str, default=None, help='Test saving path')
+
+    args = parser.parse_args()
+
+    if args.results_path is not None:
+        chosen_log = args.results_path
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
