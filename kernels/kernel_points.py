@@ -76,7 +76,7 @@ def create_3D_rotations(axis, angle):
 
 
 def spherical_Lloyd(radius, num_cells, dimension=3, fixed='center', approximation='monte-carlo',
-                    approx_n=5000, max_iter=500, momentum=0.9, verbose=0):
+                    approx_n=5000, max_iter=500, momentum=0.9, verbose=2):
     """
     Creation of kernel point via Lloyd algorithm. We use an approximation of the algorithm, and compute the Voronoi
     cell centers with discretization  of space. The exact formula is not trivial with part of the sphere as sides.

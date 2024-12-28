@@ -13,7 +13,7 @@
 #
 #      Hugues THOMAS - 11/06/2018
 #
-
+import os
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
@@ -96,7 +96,7 @@ class ModelVisualizer:
     # Main visualization methods
     # ------------------------------------------------------------------------------------------------------------------
 
-    def show_deformable_kernels(self, net, loader, config, deform_idx=0):
+    def show_deformable_kernels(self, net, loader, config, deform_idx):
         """
         Show some inference with deformable kernels
         """
@@ -195,7 +195,7 @@ class ModelVisualizer:
 
                 # Indices
                 global obj_i, point_i, plots, offsets, p_scale, show_in_p, aim_point
-                p_scale = 0.03
+                p_scale = 0.2
                 obj_i = 0
                 point_i = 0
                 plots = {}
@@ -251,7 +251,7 @@ class ModelVisualizer:
                         plots['points'] = mlab.points3d(p[:, 0],
                                                         p[:, 1],
                                                         p[:, 2],
-                                                        resolution=8,
+                                                        resolution=20,
                                                         scale_factor=p_scale,
                                                         scale_mode='none',
                                                         color=(0, 1, 1),
@@ -405,6 +405,8 @@ class ModelVisualizer:
                     elif vtk_obj.GetKeyCode() in ['0']:
 
                         print('Saving')
+                        if not exists('KP_clouds'):
+                            os.makedirs('KP_clouds')
 
                         # Find a new name
                         file_i = 0

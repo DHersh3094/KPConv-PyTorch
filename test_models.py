@@ -106,13 +106,15 @@ if __name__ == '__main__':
     # chosen_log = 'results/Log_2024-09-15_18-18-11'
     # chosen_log = "results/Log_2024-09-17_13-07-55"
     # chosen_log = "Dec11_v33_0.4subsample_kpsubsample_0.4"
-    parser.add_argument('--results_path', type=str, default=None, help='Results path')
+    chosen_log = '/media/davidhersh/T7 Shield/results_2024_12_12_17_44/data_1_subsample_0.4'
+    # parser.add_argument('--results_path', type=str, default=None, help='Results path')
+    parser.add_argument('--data_path', type=str, default=None, help='Data path')
     # parser.add_argument('--test_saving_path', type=str, default=None, help='Test saving path')
 
     args = parser.parse_args()
-
-    if args.results_path is not None:
-        chosen_log = args.results_path
+    #
+    # if args.results_path is not None:
+    #     chosen_log = args.results_path
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -151,6 +153,9 @@ if __name__ == '__main__':
     # Initialize configuration class
     config = Config()
     config.load(chosen_log)
+
+    if args.data_path is not None:
+        config.path = args.data_path
 
     ##################################
     # Change model parameters for test

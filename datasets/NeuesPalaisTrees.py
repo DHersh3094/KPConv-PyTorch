@@ -51,7 +51,7 @@ from utils.config import bcolors
 class NeuesPalaisTreesDataset(PointCloudDataset):
     """Class to handle Modelnet 40 dataset."""
 
-    def __init__(self, config, mode="train", orient_correction=False):
+    def __init__(self, config, mode="train", orient_correction=False, num_train_models=None, num_test_models=None):
         """
         This dataset is small enough to be stored in-memory, so load all point clouds here
         """
@@ -87,8 +87,8 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         # Dataset folder
         # self.path = '../Data/NeuesPalaisTrees_v32'
-        self.path = '/media/davidhersh/T7 Shield/Datasets/data_1'
-
+        # self.path = '/media/davidhersh/T7 Shield/Datasets/data_1_subsample_0.4'
+        self.path = config.path
         # Type of task conducted on this dataset
         self.dataset_task = 'classification'
 
@@ -109,16 +109,16 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         # Number of models and models used per epoch
         if self.mode == 'train':
-            self.num_models = 2208 # number of files in train.txt
+            self.num_models = num_train_models if num_train_models else 2208
             if config.epoch_steps and config.epoch_steps * config.batch_num < self.num_models:
                 self.epoch_n = config.epoch_steps * config.batch_num
             else:
                 self.epoch_n = self.num_models
         elif self.mode == 'val':
-            self.num_models = 552
+            self.num_models = num_test_models if num_test_models else 2208
             self.epoch_n = min(self.num_models, config.validation_size * config.batch_num)
         else:
-            self.num_models = 552
+            self.num_models = num_test_models if num_test_models else 2208
             self.epoch_n = min(self.num_models, config.test_size * config.batch_num)
 
         #############
@@ -234,6 +234,8 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
             subsample_parameter = 0.0
             print('\nLoading {:s} points subsampled at {:.3f}'.format(split, subsample_parameter))
             filename = join(self.path, '{:s}_{:.3f}_record.pkl'.format(split, subsample_parameter))
+            print(f'\nPath to subsampled: {self.path}')
+
 
         if exists(filename):
             with open(filename, 'rb') as file:

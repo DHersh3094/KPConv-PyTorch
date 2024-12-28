@@ -22,11 +22,14 @@
 #
 
 # Common libs
+import sys
 import signal
 import os
 import numpy as np
 import sys
 import torch
+from traits.trait_types import self
+
 # from numba.cuda.libdevicedecl import args
 
 # Dataset
@@ -170,7 +173,7 @@ class NeuesPalaisTreesConfig(Config):
 
     # # Do we nee to save convergence
     saving = True
-    saving_path = 'Dec11_v33_0.4subsample_kpsubsample_0.4'
+    saving_path = 'Dec16_v33_0.4subsample_kpsubsample_0.4'
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -189,6 +192,8 @@ if __name__ == '__main__':
     parser.add_argument('--max_epoch', type=int, default=None, help='Override max epoch')
     parser.add_argument('--data_path', type=str, default=None, help='Data path')
     parser.add_argument('--saving_path', type=str, default=None, help='Saving path')
+    parser.add_argument('--num_train_models', type=int, help='# of trees')
+    parser.add_argument('--num_test_models', type=int,  help='# of trees')
 
     args = parser.parse_args()
 
@@ -239,6 +244,11 @@ if __name__ == '__main__':
     # Initialize configuration class
     config = NeuesPalaisTreesConfig()
 
+    # if args.num_train_models and self.mode == 'train':
+    #     num_models = args.num_train_models
+    # if args.num_test_models and self.mode == 'test':
+    #     num_models = args.num_test_models
+
     # Parse args
 
     if args.max_epoch is not None:
@@ -248,6 +258,9 @@ if __name__ == '__main__':
     # Path to input data
     if args.data_path is not None:
         config.path = args.data_path
+    else:
+        print(f"Error: Data path not provided...")
+        sys.exit(1)
 
     # Path to saving
     if args.saving_path is not None:
@@ -265,10 +278,13 @@ if __name__ == '__main__':
     # if len(sys.argv) > 1:
     #     config.saving_path = sys.argv[1]
 
+    print(f'Num train models: {args.num_train_models}')
+    print(f'Num test models: {args.num_test_models}')
+
     # Initialize datasets
-    training_dataset = NeuesPalaisTreesDataset(config, mode='train')
-    val_dataset = NeuesPalaisTreesDataset(config, mode='test')
-    test_dataset = NeuesPalaisTreesDataset(config, mode='test')
+    training_dataset = NeuesPalaisTreesDataset(config, mode='train', num_train_models = int(args.num_train_models))
+    val_dataset = NeuesPalaisTreesDataset(config, mode='test', num_test_models = int(args.num_test_models))
+    test_dataset = NeuesPalaisTreesDataset(config, mode='test', num_test_models = int(args.num_test_models))
 
     # Initialize samplers
     training_sampler = NeuesPalaisTreesSampler(training_dataset, balance_labels=True)

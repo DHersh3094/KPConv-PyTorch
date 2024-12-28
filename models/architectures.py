@@ -122,7 +122,11 @@ class KPCNN(nn.Module):
         # Network Losses
         ################
 
-        self.criterion = torch.nn.CrossEntropyLoss()
+        if len(config.class_w) > 0:
+            class_w = torch.from_numpy(np.array(config.class_w, dtype=np.float32))
+            self.criterion = torch.nn.CrossEntropyLoss(weight=class_w, ignore_index=-1)
+        else:
+            self.criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)
         self.deform_fitting_mode = config.deform_fitting_mode
         self.deform_fitting_power = config.deform_fitting_power
         self.deform_lr_factor = config.deform_lr_factor

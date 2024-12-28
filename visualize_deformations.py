@@ -38,6 +38,8 @@ from utils.config import Config
 from utils.visualizer import ModelVisualizer
 from models.architectures import KPCNN, KPFCNN
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+KP_CLOUDS_DIR = os.path.join(BASE_DIR, 'KP_clouds')
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
@@ -95,7 +97,7 @@ if __name__ == '__main__':
     #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
     #       > 'results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
 
-    chosen_log = 'Dec5_v33_deformable_0.4'
+    chosen_log = '/media/davidhersh/T7 Shield/results_2024_12_12_17_44/data_1_subsample_0.4'
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -160,7 +162,7 @@ if __name__ == '__main__':
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
     elif config.dataset.startswith('NeuesPalaisTrees'):
-        test_dataset = NeuesPalaisTreesDataset(config, mode='val')
+        test_dataset = NeuesPalaisTreesDataset(config, mode='train')
         test_sampler = NeuesPalaisTreesSampler(test_dataset)
         collate_fn = NeuesPalaisTreesCollate
     
@@ -203,6 +205,7 @@ if __name__ == '__main__':
 
     # Training
     visualizer.show_deformable_kernels(net, test_loader, config, deform_idx)
+
 
 
 
