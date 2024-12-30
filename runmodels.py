@@ -24,21 +24,54 @@ from tqdm import tqdm
 import re
 import tempfile
 
+class PipelineConfig:
+    def __init__(self, input_folder, copied_folder, dataset_dir, point_threshold, n_splits,
+                 min_subsample_distance, rotations, normals_search_radius,
+                 max_epochs, first_kpconv_subsampling_dl, saving_path):
+        self.input_folder = input_folder
+        self.copied_folder = copied_folder
+        self.dataset_dir = dataset_dir
+        self.point_threshold = point_threshold
+        self.n_splits = n_splits
+        self.min_subsample_distance = min_subsample_distance
+        self.normals_search_radius = normals_search_radius
+        self.rotations = rotations
+        self.normals_search_radius = normals_search_radius
+        self.max_epochs = max_epochs
+        self.first_kpconv_subsampling_dl = first_kpconv_subsampling_dl
+
+        self.train_folders = None
+        self.test_folders = None
+
+        self.num_train_files = None
+        self.num_test_files = None
+
+        self.timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
+        self.saving_path = os.path.join(saving_path, f'results_{self.timestamp}_minsubsample_{min_subsample_distance}')
+        os.makedirs(self.saving_path, exist_ok=True)
+
 
 # In[88]:
 
 
-def copy_folder(input_folder, output_folder, point_threshold, plot=True, redo=True):
+def copy_folder(config):
+    input_folder = config.input_folder
+    copied_folder=config.copied_folder
+    point_threshold=config.point_threshold
+    plot = True
+    redo = True
     """
     Copy single tree ALS files (ending with _g meaning ground classified) for a specific list of trees if they have a minimum point count
     """
     if redo:
-    
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-            
+
+        try:
+            if not os.path.exists(copied_folder):
+                os.makedirs(copied_folder)
+        except OSError:
+            print(f'Unable to make folder')
         # Save figs
-        figdir = output_folder.replace('/tmp', '/processing_figures')
+        figdir = copied_folder.replace('/tmp', '/processing_figures')
         if not os.path.exists(figdir):
             os.makedirs(figdir)
         
@@ -67,10 +100,14 @@ def copy_folder(input_folder, output_folder, point_threshold, plot=True, redo=Tr
                     if filename.endswith('ALS-on_g.laz') and species_name in species_to_copy and study_area != "BR06":
                             las = lp.read(os.path.join(root, filename))
                             number_of_nonground_points = len(las.points[las.classification !=2])
-                            if number_of_nonground_points <= point_threshold:
-                                species_counter[species_name] += 1
-                                files.append(os.path.join(root, filename))  # Store full file paths
-                                shutil.copyfile(os.path.join(root, filename), os.path.join(output_folder, filename))
+                            if number_of_nonground_points >= point_threshold:
+
+                                try:
+                                    species_counter[species_name] += 1
+                                    files.append(os.path.join(root, filename))  # Store full file paths
+                                    shutil.copyfile(os.path.join(root, filename), os.path.join(copied_folder, filename))
+                                except:
+                                    print(f'Error copying.')
                 except: 
                     pass
         print(f'Copying {len(files)} files')
@@ -83,9 +120,9 @@ def copy_folder(input_folder, output_folder, point_threshold, plot=True, redo=Tr
             plt.xlabel('Species')
             plt.title(f"Number of trees with more than {point_threshold} non-ground points")
             plt.savefig(os.path.join(figdir, f'species_count_greaterthan_{point_threshold}_points.png'), bbox_inches='tight')
-            plt.show()
+            # plt.show()
         
-        return output_folder, species_counter
+        return copied_folder
     
     else:
         print(f'Skipping copying...')
@@ -131,25 +168,47 @@ def calculate_hag(las_file):
 
 # Can do HAG calculation before split
 
-def convert_hag_to_z(input_folder, redo=True):
-    
+def convert_hag_to_z(config, redo=True):
+    input_folder = config.copied_folder # Run on copied files
+
     if redo:
-        files = os.listdir(copied_als_folder)
+        files = os.listdir(input_folder)
         for file in tqdm(files, desc='Processing files', unit='file'):
-            full_path = os.path.join(copied_als_folder, file)
+            full_path = os.path.join(input_folder, file)
             calculate_hag(full_path)
     else:
         print("Skipping HAG step...")
         
 # convert_hag_to_z(input_folder=copied_als_folder)
 
+def calculate_normals(config, las_file):
+    normals_search_radius = config.normals_search_radius
+    las = lp.read(las_file)
+    FEATURE_NAMES = ['nx', 'ny', 'nz']
+
+    # Remove nx, ny, nz if existing
+    for feature_name in FEATURE_NAMES:
+        if feature_name in las.point_format.dimension_names:
+            las.point_format.remove_extra_dimension(feature_name)
+
+    xyz = las_utils.read_las_xyz(las_file)
+
+    features = compute_features(xyz, search_radius=normals_search_radius, feature_names=FEATURE_NAMES)
+
+    output_file = las_file.replace('.laz', '_normals.laz')
+
+    if not os.path.exists(output_file):
+        las_utils.write_with_extra_dims(las_file, output_file, features, FEATURE_NAMES)
+        os.remove(las_file)
+
 
 # In[93]:
 
 
-def stratified_k_fold_split(input_folder, output_folder=None, n_splits=5):
-    # input_folder = copied_als_folder
+def stratified_k_fold_split(config):
+    input_folder = config.copied_folder
     output_folder = input_folder.replace('/tmp', '/kfolders')
+    n_splits = config.n_splits
 
     files = []
     labels = []
@@ -179,15 +238,16 @@ def stratified_k_fold_split(input_folder, output_folder=None, n_splits=5):
         for test_idx in test_index:
             shutil.copy(files[test_idx], fold_test_dir)
             
+    config.train_folders = train_folders
+    config.test_folders = test_folders
     return train_folders, test_folders
-    
-# train_folders, test_folders = stratified_k_fold_split(copied_als_folder, output_folder, n_splits=n_splits)
 
 
 # In[94]:
 
 
-def poisson_subsample(las_file, min_distance):
+def poisson_subsample(config, las_file):
+    min_distance = config.min_subsample_distance
     las = lp.read(las_file)
     points = np.vstack((las.x, las.y, las.z)).transpose()
 
@@ -283,7 +343,6 @@ def rotate_las(las_file, rotations):
             header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
             header.offsets = las.header.offsets
             header.scales = las.header.scales
-            # header.crs = lp.crs.CRS.from_epsg(25832)
 
             rotated_las = lp.LasData(header)
             rotated_las.x = rotated_points[:, 0]
@@ -294,84 +353,48 @@ def rotate_las(las_file, rotations):
                 if dim_name not in ["X", "Y", "Z"]:
                     setattr(rotated_las, dim_name, getattr(las, dim_name))
 
-            unique_filename = las_file.replace('.laz', f'_rot_{rotation}.laz')
-            output_filename = os.path.join(output_folder, unique_filename)
+            base_folder = os.path.dirname(las_file)
+            base_name = os.path.basename(las_file).replace('.laz', f'_rot{rotation}.laz')
+            output_file = os.path.join(base_folder, base_name)
 
-            os.makedirs(output_folder, exist_ok=True)
-            rotated_las.write(output_filename)
-
-
-# In[97]:
-
-
-def calculate_normals(las_file):
-    las = lp.read(las_file)
-    FEATURE_NAMES = ['nx', 'ny', 'nz']
-    
-    # Remove nx, ny, nz if existing
-    for feature_name in FEATURE_NAMES:
-        if feature_name in las.point_format.dimension_names:
-            las.point_format.remove_extra_dimension(feature_name)
-    
-    xyz = las_utils.read_las_xyz(las_file)
-    
-    features = compute_features(xyz, search_radius=normals_search_radius, feature_names=FEATURE_NAMES)
-    
-    output_file = las_file.replace('.laz', '_normals.laz')
-    
-    if not os.path.exists(output_file):
-        las_utils.write_with_extra_dims(las_file, output_file, features, FEATURE_NAMES)
-        os.remove(las_file)
-
+            rotated_las.write(output_file)
 
 # In[98]:
 
 
 # Augment each folder
 
-def augmentation(train_folders, test_folders,
-                 redo_xy_normalization=True,
-                 redo_subsample=True,
-                 redo_rotation=True):
+def augmentation(config):
+     rotations=config.rotations
+     train_folders = config.train_folders
+     test_folders = config.test_folders
+     min_subsample_distance = config.min_subsample_distance
 
-    all_folders = train_folders + test_folders
-    for folder in all_folders:
+     all_folders = train_folders + test_folders
+     for folder in all_folders:
         for las_file in os.listdir(folder):
-            
-            # Normalize x,y by means
-            if redo_xy_normalization:
+            if las_file.endswith('.laz'):
+
                 normalize_xy(las_file=os.path.join(folder, las_file))
-            else:
-                pass
-            
-            # Downsample using minimum distance
-            if redo_subsample:
-                poisson_subsample(las_file=os.path.join(folder, las_file),
-                                  min_distance=min_subsample_distance)
-            else:
-                pass
-            
-            # Rotate on z-axis
-            if redo_rotation:
-                rotate_las(os.path.join(folder, las_file), rotations=rotations)
-            else:
-                pass
-            
-    # Need to relist the folders with the new rotated files            
-    for folder in all_folders:
+
+                poisson_subsample(config, las_file=os.path.join(folder, las_file))
+
+                rotate_las(las_file=os.path.join(folder, las_file), rotations=rotations)
+
+
+     for folder in all_folders:
         for las_file in os.listdir(folder):
-            
-            # Calculate normals
-            calculate_normals(os.path.join(folder, las_file))
-    
-# augmentation()
+            if las_file.endswith('.laz'):
+                calculate_normals(config, os.path.join(folder, las_file))
 
 
 # In[99]:
 
 
 # Need to deal with nan normal values
-def convert_to_txt(train_folders, test_folders):
+def convert_to_txt(config):
+    train_folders = config.train_folders
+    test_folders = config.test_folders
     all_folders = train_folders + test_folders
 
     for folder in all_folders:
@@ -384,8 +407,6 @@ def convert_to_txt(train_folders, test_folders):
             with open(os.path.join(folder, output_file), 'w') as f:
                 for x, y, z, nx, ny, nz in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz):
                     f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}\n')
-            # os.remove(os.path.join(folder, las_file))
-# convert_to_txt()
 
 
 # In[100]:
@@ -393,7 +414,13 @@ def convert_to_txt(train_folders, test_folders):
 
 # Convert to KPConv repository dataset format
 
-def copy_to_datasets(train_folders, test_folders, dataset_dir, n_splits):
+def copy_to_datasets(config):
+    train_folders = config.train_folders
+    test_folders = config.test_folders
+    dataset_dir = config.dataset_dir
+    n_splits = config.n_splits
+    min_subsample_distance = config.min_subsample_distance
+
     all_folders = train_folders + test_folders
     base_folder = train_folders[0]
     base_folder_test = test_folders[0]
@@ -473,26 +500,17 @@ def copy_to_datasets(train_folders, test_folders, dataset_dir, n_splits):
 # Need to pass config parameters here and update class_w
 
 
-# In[101]:
-
-
-# all_data_dirs
-# 
-# base_dir = '/media/davidhersh/T7 Shield/Datasets/'
-# all_data_dirs = os.listdir('/media/davidhersh/T7 Shield/Datasets/')
-# all_data_dirs = [os.path.join(base_dir, d) for d in all_data_dirs]
-
-# print(all_data_dirs)
-
-
 # In[102]:
 
 
 def calculate_number_of_train_and_test_files(data_folder):
-    with open(os.path.join(data_folder, 'train.txt')) as f:
+    train_path = os.path.join(data_folder, 'train.txt')
+    test_path = os.path.join(data_folder, 'test.txt')
+
+    with open(train_path) as f:
         num_train_files = len(f.readlines())
     
-    with open(os.path.join(data_folder, 'test.txt')) as f:
+    with open(test_path) as f:
         num_test_files = len(f.readlines())
     return num_train_files, num_test_files
 
@@ -516,7 +534,16 @@ def calculate_number_of_train_and_test_files(data_folder):
 # if args.num_test_models and self.mode == 'test':
 #     self.num_models = args.num_test_models
 
-def run_training(script_name, args, all_data_dirs):
+def run_training(config, args=None):
+    all_data_dirs = [os.path.join(config.dataset_dir, f"data_{i}_subsample_{config.min_subsample_distance}")
+                     for i in range(1, config.n_splits + 1)]
+    saving_path = config.saving_path
+    print(f'Saving path: {saving_path}')
+    min_subsample_distance = config.min_subsample_distance
+    rotations = config.rotations
+    n_splits = config.n_splits
+    first_kpconv_subsampling_dl = config.first_kpconv_subsampling_dl
+    max_epochs = config.max_epochs
 
     if not os.path.exists(saving_path):
         os.makedirs(saving_path)
@@ -530,7 +557,6 @@ def run_training(script_name, args, all_data_dirs):
         f.write('-----------------------\n')
         f.write(f'Minimum distance between points: {min_subsample_distance}\n')
         f.write(f'Rotations: {rotations}\n')
-        f.write(f'Normals search radius: {normals_search_radius}\n')
         f.write('\n')
 
         # k-fold
@@ -540,13 +566,14 @@ def run_training(script_name, args, all_data_dirs):
         #KPConv values
         f.write('KPConv Parameters:\n')
         f.write('-----------------------\n')
-        f.write(f'max_epoch: {max_epoch}\n')
+        f.write(f'max_epoch: {max_epochs}\n')
         f.write(f'first_kpconv_subsampling_dl: {first_kpconv_subsampling_dl}\n')
 
 
-    with open(logfile, 'a') as f:
+    with open(logfile, 'a') as logfile:
 
         for folder in all_data_dirs:
+            print(f'folder: {folder}')
             # Save each fold within the results
             kfold_folder_name = folder.split('/')[-1]
             kfold_folder_path = os.path.join(saving_path, kfold_folder_name) # Save path
@@ -556,7 +583,7 @@ def run_training(script_name, args, all_data_dirs):
             # Set num train,test files
             num_train_files, num_test_files = calculate_number_of_train_and_test_files(folder)
 
-            args = ['--max_epoch',str(max_epoch),
+            args = ['--max_epoch',str(max_epochs),
                     '--first_subsampling_dl',str(first_kpconv_subsampling_dl),
                     '--data_path', folder,
                     '--saving_path', kfold_folder_path,
@@ -564,7 +591,7 @@ def run_training(script_name, args, all_data_dirs):
                     '--num_test_models', str(num_test_files)]
 
             process = subprocess.Popen(
-                ['python', script_name] + args,
+                ['python', 'train_NeuesPalaisTrees.py'] + args,
                 stdout = subprocess.PIPE,
                 stderr = subprocess.STDOUT,
                 text=True,
@@ -579,7 +606,8 @@ def run_training(script_name, args, all_data_dirs):
 # In[104]:
 
 
-def plot_train_and_val_accuracy_for_all_folds(saving_path, num_classes=6):
+def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
+    saving_path = config.saving_path
     folders = [os.path.join(saving_path, f) for f in os.listdir(saving_path) if os.path.isdir(os.path.join(saving_path, f))]
 
     fold=0
@@ -631,65 +659,86 @@ def plot_train_and_val_accuracy_for_all_folds(saving_path, num_classes=6):
 
 # parser.add_argument('--results_path', type=str, default=None, help='Results path')
 
-# Pass each of the folders after training to test_models.py
-# Within each folder, a new folder /test will be saved with test confusion matrices
-# Should add an arg for the tester.py num_votes value. Current is 10 votes
-
-def test_models(data_folders):
-    for data_dir in data_folders:
-        print(results_folders)
-        args = ['--data_path', data_dir]
-
-    results = subprocess.run(
-        ['python', 'test_models.py'] + args,
-        capture_output=True,
-        text=True
-    )
-
-    test_results_folders = [os.path.join(saving_path, folder) for folder in saving_path]
-
-    return test_results_folders
+# # Pass each of the folders after training to test_models.py
+# # Within each folder, a new folder /test will be saved with test confusion matrices
+# # Should add an arg for the tester.py num_votes value. Current is 10 votes
+#
+# def test_models(data_folders):
+#     for data_dir in data_folders:
+#         print(results_folders)
+#         args = ['--data_path', data_dir]
+#
+#     results = subprocess.run(
+#         ['python', 'test_models.py'] + args,
+#         capture_output=True,
+#         text=True
+#     )
+#
+#     test_results_folders = [os.path.join(saving_path, folder) for folder in saving_path]
+#
+#     return test_results_folders
 
 
 # test_results_folders = test_models(data_folders)
 
+def runpipeline(config):
+    print(f'Copying to {config.copied_folder}')
+    copied_als_folder = copy_folder(config)
+
+    print(f'\nConverting HAG to z')
+    convert_hag_to_z(config)
+
+    print(f'\nSplitting into {config.n_splits} folds')
+    train_folders, test_folders = stratified_k_fold_split(config)
+
+    print(f'\nAugmenting')
+    augmentation(config)
+
+    print(f'\nConverting to txt')
+    convert_to_txt(config)
+
+    print(f'\nCopying to datasets')
+    copy_to_datasets(config)
+
+    print(f'\nRunning training')
+    run_training(config)
+
 def main():
 
-    input_ALS_folder = '/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data'
-    output_folder = '/media/davidhersh/T7 Shield/pre-processing/tmp_Dec28'
-    # output_folder = '/tmp'
-    dataset_dir = '/media/davidhersh/T7 Shield/Datasets_Dec28'
-
+    config = PipelineConfig(
+    input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
+    copied_folder = '/media/davidhersh/T7 Shield/pre-processing/tmp_Dec30_v2',
+    dataset_dir = '/media/davidhersh/T7 Shield/Datasets_Dec30',
+    saving_path='/media/davidhersh/T7 Shield',
     # Running each
-    max_epoch = 50
-    first_kpconv_subsampling_dl = 0.4
-
-    timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
-    saving_path = f'/media/davidhersh/T7 Shield/results_{timestamp}'
-
-    # In[87]:
-
-    point_threshold = 1000
-
+    max_epochs = 100,
+    first_kpconv_subsampling_dl = 0.4,
+    point_threshold = 2000,
     # k-fold
-    n_splits = 2
-
+    n_splits = 5,
     # Augmentation values
-    min_subsample_distance = 0.4
-    rotations = [15]
+    min_subsample_distance = 0.2,
+    rotations = [-45, 45],
     normals_search_radius = 2
+    )
 
-    print(f'Input folder: {input_ALS_folder}')
-    print(f'Output folder: {output_folder}')
-    copied_als_folder, species_counter = copy_folder(input_folder=input_ALS_folder, output_folder=output_folder,
-                                                     point_threshold=point_threshold)
+    runpipeline(config)
+
+    # copied_als_folder, counter = copy_folder(input_folder=input_ALS_folder, output_folder=output_folder,
+    #                                                  point_threshold=point_threshold)
     # convert_hag_to_z(input_folder=copied_als_folder)
-    #
+    # #
     # train_folders, test_folders = stratified_k_fold_split(
     #     input_folder=copied_als_folder,
-    #     n_splits=nsplits
+    #     n_splits=n_splits
     # )
-    # augmentation(train_folders=train_folders, test_folders=test_folders)
+    # augmentation(train_folders=train_folders,
+    #              test_folders=test_folders,
+    #              min_subsample_distance=min_subsample_distance,
+    #              rotations=rotations,
+    #              normals_search_radius=normals_search_radius,
+    #              output_folder=output_folder)
+    #
     # convert_to_txt(train_folders=train_folders, test_folders=test_folders)
     # all_data_dirs = copy_to_datasets(train_folders=train_folders, test_folders=test_folders, dataset_dir=dataset_dir)
     # run_training(script_name='train_NeuesPalaisTrees.py', args=[], all_data_dirs=all_data_dirs)
