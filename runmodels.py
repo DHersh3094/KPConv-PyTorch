@@ -100,7 +100,7 @@ def copy_folder(config):
                     if filename.endswith('ALS-on_g.laz') and species_name in species_to_copy and study_area != "BR06":
                             las = lp.read(os.path.join(root, filename))
                             number_of_nonground_points = len(las.points[las.classification !=2])
-                            if number_of_nonground_points >= point_threshold:
+                            if number_of_nonground_points <= point_threshold:
 
                                 try:
                                     species_counter[species_name] += 1
@@ -336,7 +336,14 @@ def rotate_las(las_file, rotations):
 
         point_data = np.vstack((las.x, las.y, las.z)).T
 
-        for i, rotation in enumerate(rotations):
+        quadrant_ranges = []
+        step = 360 // rotations
+        for i in range(rotations):
+            quadrant_ranges.append((i * step, (i + 1) * step))
+
+        random_rotations = [np.random.uniform(low, high) for low, high in quadrant_ranges]
+
+        for i, rotation in enumerate(random_rotations):
 
             rotated_points = rotate_z(point_data, rotation)
 
@@ -354,7 +361,7 @@ def rotate_las(las_file, rotations):
                     setattr(rotated_las, dim_name, getattr(las, dim_name))
 
             base_folder = os.path.dirname(las_file)
-            base_name = os.path.basename(las_file).replace('.laz', f'_rot{rotation}.laz')
+            base_name = os.path.basename(las_file).replace('.laz', f'_rot_{int(rotation)}.laz')
             output_file = os.path.join(base_folder, base_name)
 
             rotated_las.write(output_file)
@@ -405,8 +412,8 @@ def convert_to_txt(config):
             output_file = las_file.replace('.laz', '.txt')
             
             with open(os.path.join(folder, output_file), 'w') as f:
-                for x, y, z, nx, ny, nz in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz):
-                    f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}\n')
+                for x, y, z, nx, ny, nz, intensity in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz, las.intensity):
+                    f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}, {intensity}\n')
 
 
 # In[100]:
@@ -683,19 +690,19 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
 
 def runpipeline(config):
     print(f'Copying to {config.copied_folder}')
-    copied_als_folder = copy_folder(config)
+    # copied_als_folder = copy_folder(config)
 
     print(f'\nConverting HAG to z')
-    convert_hag_to_z(config)
+    # convert_hag_to_z(config)
 
     print(f'\nSplitting into {config.n_splits} folds')
     train_folders, test_folders = stratified_k_fold_split(config)
 
     print(f'\nAugmenting')
-    augmentation(config)
+    # augmentation(config)
 
     print(f'\nConverting to txt')
-    convert_to_txt(config)
+    # convert_to_txt(config)
 
     print(f'\nCopying to datasets')
     copy_to_datasets(config)
@@ -707,18 +714,18 @@ def main():
 
     config = PipelineConfig(
     input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
-    copied_folder = '/media/davidhersh/T7 Shield/pre-processing/tmp_Dec30_v2',
-    dataset_dir = '/media/davidhersh/T7 Shield/Datasets_Dec30',
+    copied_folder = '/media/davidhersh/T7 Shield/pre-processing/tmp_Jan3',
+    dataset_dir = '/media/davidhersh/T7 Shield/Datasets_Jan3',
     saving_path='/media/davidhersh/T7 Shield',
     # Running each
     max_epochs = 100,
     first_kpconv_subsampling_dl = 0.4,
-    point_threshold = 2000,
+    point_threshold = 500,
     # k-fold
     n_splits = 5,
     # Augmentation values
     min_subsample_distance = 0.2,
-    rotations = [-45, 45],
+    rotations = 4,
     normals_search_radius = 2
     )
 
