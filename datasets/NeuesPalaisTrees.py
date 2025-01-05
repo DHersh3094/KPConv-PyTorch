@@ -280,7 +280,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                     # print(f'Loading PCs not subsampled')
                     # print(f'Data shape: {data.shape}')
                     points = data[:, :3]
-                    normals = data[:, 3:]
+                    normals = data[:, 3:6]
 
                 print('', end='\r')
                 print(fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N), end='', flush=True)
@@ -291,7 +291,6 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
             print('', end='\r')
             print(fmt_str.format('#' * progress_n, 100), end='', flush=True)
-            print()
 
             # Get labels
             # label_names = ['_'.join(name.split('_')[:-1]) for name in names]

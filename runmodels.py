@@ -25,13 +25,14 @@ import re
 import tempfile
 
 class PipelineConfig:
-    def __init__(self, input_folder, copied_folder, dataset_dir, point_threshold, n_splits,
+    def __init__(self, input_folder, copied_folder, dataset_dir, min_point_threshold, max_point_threshold, n_splits,
                  min_subsample_distance, rotations, normals_search_radius,
                  max_epochs, first_kpconv_subsampling_dl, saving_path):
         self.input_folder = input_folder
         self.copied_folder = copied_folder
         self.dataset_dir = dataset_dir
-        self.point_threshold = point_threshold
+        self.min_point_threshold = min_point_threshold
+        self.max_point_threshold = max_point_threshold
         self.n_splits = n_splits
         self.min_subsample_distance = min_subsample_distance
         self.normals_search_radius = normals_search_radius
@@ -57,8 +58,9 @@ class PipelineConfig:
 def copy_folder(config):
     input_folder = config.input_folder
     copied_folder=config.copied_folder
-    point_threshold=config.point_threshold
-    plot = True
+    min_point_threshold=config.min_point_threshold
+    max_point_threshold=config.max_point_threshold
+    plot = False
     redo = True
     """
     Copy single tree ALS files (ending with _g meaning ground classified) for a specific list of trees if they have a minimum point count
@@ -100,7 +102,7 @@ def copy_folder(config):
                     if filename.endswith('ALS-on_g.laz') and species_name in species_to_copy and study_area != "BR06":
                             las = lp.read(os.path.join(root, filename))
                             number_of_nonground_points = len(las.points[las.classification !=2])
-                            if number_of_nonground_points <= point_threshold:
+                            if number_of_nonground_points >= min_point_threshold and number_of_nonground_points <= max_point_threshold:
 
                                 try:
                                     species_counter[species_name] += 1
@@ -118,8 +120,8 @@ def copy_folder(config):
             plt.bar(species_counter.keys(), species_counter.values())
             plt.ylabel('Number of trees')
             plt.xlabel('Species')
-            plt.title(f"Number of trees with more than {point_threshold} non-ground points")
-            plt.savefig(os.path.join(figdir, f'species_count_greaterthan_{point_threshold}_points.png'), bbox_inches='tight')
+            plt.title(f"Number of trees with more than {min_point_threshold} non-ground points")
+            plt.savefig(os.path.join(figdir, f'species_count_greaterthan_{min_point_threshold}_points.png'), bbox_inches='tight')
             # plt.show()
         
         return copied_folder
@@ -127,11 +129,6 @@ def copy_folder(config):
     else:
         print(f'Skipping copying...')
 
-
-# In[89]:
-
-
-# copied_als_folder, species_counter = copy_folder(input_ALS_folder, output_folder='/tmp', point_threshold=0.5, plot=False, redo=True)
 
 
 # In[90]:
@@ -207,7 +204,8 @@ def calculate_normals(config, las_file):
 
 def stratified_k_fold_split(config):
     input_folder = config.copied_folder
-    output_folder = input_folder.replace('/tmp', '/kfolders')
+    foldername = input_folder.split('/')[-1]
+    output_folder = input_folder.replace(foldername, 'kfolders')
     n_splits = config.n_splits
 
     files = []
@@ -412,8 +410,8 @@ def convert_to_txt(config):
             output_file = las_file.replace('.laz', '.txt')
             
             with open(os.path.join(folder, output_file), 'w') as f:
-                for x, y, z, nx, ny, nz, intensity in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz, las.intensity):
-                    f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}, {intensity}\n')
+                for x, y, z, nx, ny, nz in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz):
+                    f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}\n')
 
 
 # In[100]:
@@ -690,19 +688,19 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
 
 def runpipeline(config):
     print(f'Copying to {config.copied_folder}')
-    # copied_als_folder = copy_folder(config)
+    copied_als_folder = copy_folder(config)
 
     print(f'\nConverting HAG to z')
-    # convert_hag_to_z(config)
+    convert_hag_to_z(config)
 
     print(f'\nSplitting into {config.n_splits} folds')
     train_folders, test_folders = stratified_k_fold_split(config)
 
     print(f'\nAugmenting')
-    # augmentation(config)
+    augmentation(config)
 
     print(f'\nConverting to txt')
-    # convert_to_txt(config)
+    convert_to_txt(config)
 
     print(f'\nCopying to datasets')
     copy_to_datasets(config)
@@ -714,43 +712,23 @@ def main():
 
     config = PipelineConfig(
     input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
-    copied_folder = '/media/davidhersh/T7 Shield/pre-processing/tmp_Jan3',
-    dataset_dir = '/media/davidhersh/T7 Shield/Datasets_Jan3',
-    saving_path='/media/davidhersh/T7 Shield',
+    copied_folder = '/media/davidhersh/T7 Shield/pre-processing/CopiedJan5',
+    dataset_dir = '/media/davidhersh/T7 Shield/DataJan5',
+    saving_path= '/media/davidhersh/T7 Shield/DataJan5',
     # Running each
-    max_epochs = 100,
+    max_epochs = 30,
     first_kpconv_subsampling_dl = 0.4,
-    point_threshold = 500,
+    min_point_threshold = 2000,
+    max_point_threshold = 2500,
     # k-fold
     n_splits = 5,
     # Augmentation values
-    min_subsample_distance = 0.2,
+    min_subsample_distance = 0.4,
     rotations = 4,
     normals_search_radius = 2
     )
 
     runpipeline(config)
-
-    # copied_als_folder, counter = copy_folder(input_folder=input_ALS_folder, output_folder=output_folder,
-    #                                                  point_threshold=point_threshold)
-    # convert_hag_to_z(input_folder=copied_als_folder)
-    # #
-    # train_folders, test_folders = stratified_k_fold_split(
-    #     input_folder=copied_als_folder,
-    #     n_splits=n_splits
-    # )
-    # augmentation(train_folders=train_folders,
-    #              test_folders=test_folders,
-    #              min_subsample_distance=min_subsample_distance,
-    #              rotations=rotations,
-    #              normals_search_radius=normals_search_radius,
-    #              output_folder=output_folder)
-    #
-    # convert_to_txt(train_folders=train_folders, test_folders=test_folders)
-    # all_data_dirs = copy_to_datasets(train_folders=train_folders, test_folders=test_folders, dataset_dir=dataset_dir)
-    # run_training(script_name='train_NeuesPalaisTrees.py', args=[], all_data_dirs=all_data_dirs)
-    # results_folder = plot_train_and_val_accuracy_for_all_folds(saving_path=saving_path)
-
 
 if __name__ == '__main__':
     main()
