@@ -48,7 +48,7 @@ class PipelineConfig:
         self.num_test_files = None
 
         self.timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
-        self.saving_path = os.path.join(saving_path, f'results_{self.timestamp}_minsubsample_{min_subsample_distance}')
+        self.saving_path = os.path.join(saving_path, f'results_minsubsample_{min_subsample_distance}')
         os.makedirs(self.saving_path, exist_ok=True)
 
 
@@ -613,7 +613,9 @@ def run_training(config, args=None):
 
 def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
     saving_path = config.saving_path
+    n_splits = config.n_splits
     folders = [os.path.join(saving_path, f) for f in os.listdir(saving_path) if os.path.isdir(os.path.join(saving_path, f))]
+    print(f'Plotting for folders: {folders}')
 
     fold=0
     alpha = .2
@@ -688,25 +690,27 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
 
 def runpipeline(config):
     print(f'Copying to {config.copied_folder}')
-    copied_als_folder = copy_folder(config)
+    # copied_als_folder = copy_folder(config)
 
     print(f'\nConverting HAG to z')
-    convert_hag_to_z(config)
+    # convert_hag_to_z(config)
 
     print(f'\nSplitting into {config.n_splits} folds')
-    train_folders, test_folders = stratified_k_fold_split(config)
+    # train_folders, test_folders = stratified_k_fold_split(config)
 
     print(f'\nAugmenting')
-    augmentation(config)
+    # augmentation(config)
 
     print(f'\nConverting to txt')
-    convert_to_txt(config)
+    # convert_to_txt(config)
 
     print(f'\nCopying to datasets')
-    copy_to_datasets(config)
+    # copy_to_datasets(config)
 
     print(f'\nRunning training')
     run_training(config)
+
+    plot_train_and_val_accuracy_for_all_folds(config)
 
 def main():
 
@@ -716,10 +720,10 @@ def main():
     dataset_dir = '/media/davidhersh/T7 Shield/DataJan5',
     saving_path= '/media/davidhersh/T7 Shield/DataJan5',
     # Running each
-    max_epochs = 30,
+    max_epochs = 150,
     first_kpconv_subsampling_dl = 0.4,
     min_point_threshold = 2000,
-    max_point_threshold = 2500,
+    max_point_threshold = 50000,
     # k-fold
     n_splits = 5,
     # Augmentation values
