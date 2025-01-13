@@ -13,6 +13,7 @@ import laspy as lp
 import subprocess
 import glob
 import matplotlib.pyplot as plt
+import seaborn as sns
 plt.rcParams['font.size'] = 14
 import shutil
 from collections import Counter
@@ -47,8 +48,18 @@ class PipelineConfig:
         self.num_train_files = None
         self.num_test_files = None
 
+        # Dictionary mapper for renaming labels
+        self.label_mapper = {
+            0: "European Beech",
+            1: "Norway Spruce",
+            2: "Scots Pine",
+            3: "Douglas Fir",
+            4: "Sessile Oak",
+            5: "Red Oak"
+        }
+
         self.timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
-        self.saving_path = os.path.join(saving_path, f'results_minsubsample_{min_subsample_distance}')
+        self.saving_path = os.path.join(saving_path, f'results_minsubsample_{first_kpconv_subsampling_dl}')
         os.makedirs(self.saving_path, exist_ok=True)
 
 
@@ -84,7 +95,8 @@ def copy_folder(config):
             "PinSyl",
             "QueRub",
             "PicAbi",
-            "QuePet"
+            "QuePet",
+            # "CarBet"
         ]
     
         files = []
@@ -204,8 +216,9 @@ def calculate_normals(config, las_file):
 
 def stratified_k_fold_split(config):
     input_folder = config.copied_folder
+    first_subsample_dl = config.first_kpconv_subsampling_dl
     foldername = input_folder.split('/')[-1]
-    output_folder = input_folder.replace(foldername, 'kfolders')
+    output_folder = input_folder.replace(foldername, f'kfolders_{first_subsample_dl}')
     n_splits = config.n_splits
 
     files = []
@@ -608,6 +621,25 @@ def run_training(config, args=None):
             process.wait()
             logfile.write(f"Completed {kfold_folder_name}\n")
 
+            # Test each fold
+            chosen_log = kfold_folder_path
+            test_args = ['--data_path', folder,
+                         '--num_test_models', str(num_test_files)]
+
+            print(f'Testing with chosen log: {chosen_log}')
+            process2 = subprocess.Popen(
+                ['python', 'test_models.py'] + ['--results_path', chosen_log] + test_args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            for line in process2.stdout:
+                print(line, end='')
+                logfile.write(line)
+            process2.wait()
+            logfile.write(f"Completed testing for {kfold_folder_name}\n")
+
 # In[104]:
 
 
@@ -655,79 +687,112 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
 # results_folders = plot_train_and_val_accuracy_for_all_folds(saving_path);
 
 
-# In[18]:
+def plot_test_results(config):
+    saving_path = config.saving_path
+    label_mapper = config.label_mapper
+    output_file = os.path.join(saving_path, 'test_results.png')
 
+    all_test_dirs = [os.path.join(saving_path, f"data_{i}_subsample_{config.min_subsample_distance}", "test")
+                     for i in range(1, config.n_splits + 1)]
 
-# parser.add_argument('--results_path', type=str, default=None, help='Results path')
+    overall_average_matrix = None
+    total_files = 0
+    n_classes = len(label_mapper)
 
-# Pass each of the folders after training to test_models.py
-# Within each folder, a new folder /test will be saved with test confusion matrices
-# Should add an arg for the tester.py num_votes value. Current is 10 votes
+    for test_dir in all_test_dirs:
+        npy_files = [os.path.join(test_dir, file) for file in os.listdir(test_dir) if file.endswith('.npy')]
+        fold_average_matrix = None
 
-# parser.add_argument('--results_path', type=str, default=None, help='Results path')
+        for npy_file in npy_files:
+            matrix = np.load(npy_file)
+            if fold_average_matrix is None:
+                fold_average_matrix = matrix.astype(np.float64)
+            else:
+                fold_average_matrix += matrix
 
-# # Pass each of the folders after training to test_models.py
-# # Within each folder, a new folder /test will be saved with test confusion matrices
-# # Should add an arg for the tester.py num_votes value. Current is 10 votes
-#
-# def test_models(data_folders):
-#     for data_dir in data_folders:
-#         print(results_folders)
-#         args = ['--data_path', data_dir]
-#
-#     results = subprocess.run(
-#         ['python', 'test_models.py'] + args,
-#         capture_output=True,
-#         text=True
-#     )
-#
-#     test_results_folders = [os.path.join(saving_path, folder) for folder in saving_path]
-#
-#     return test_results_folders
+        if fold_average_matrix is not None:
+            fold_average_matrix /= len(npy_files)
 
+            if overall_average_matrix is None:
+                overall_average_matrix = fold_average_matrix
+            else:
+                overall_average_matrix += fold_average_matrix
 
-# test_results_folders = test_models(data_folders)
+            total_files += len(npy_files)
+
+    if overall_average_matrix is not None:
+        overall_average_matrix /= config.n_splits
+
+        correct_predictions = np.trace(overall_average_matrix)
+        total_predictions = np.sum(overall_average_matrix)
+        overall_accuracy = correct_predictions / total_predictions
+
+        row_sums = overall_average_matrix.sum(axis=1, keepdims=True)
+        normalized_confusion_matrix = overall_average_matrix / row_sums
+
+        # Plot confusion matrix
+        labels = [label_mapper[i] for i in range(n_classes)]
+        plt.figure(figsize=(7, 7))
+        sns.heatmap(normalized_confusion_matrix, annot=True, fmt='.1%', cmap='YlOrRd',
+                    xticklabels=labels, yticklabels=labels, cbar=False,
+                    annot_kws={"size": 13})
+
+        plt.title(f'Overall accuracy: {overall_accuracy:.2f}% averaged over {total_files} test iterations')
+
+        plt.xlabel('Predicted', fontsize=15, labelpad=10)
+        plt.ylabel('True', fontsize=15, labelpad=10)
+        plt.xticks(rotation=30, ha='right', fontsize=12)
+        plt.yticks(fontsize=12, rotation=30)
+
+        plt.tight_layout(pad=1.8)
+
+        if output_file:
+            plt.savefig(output_file, dpi=400, bbox_inches='tight')
 
 def runpipeline(config):
+
     print(f'Copying to {config.copied_folder}')
-    # copied_als_folder = copy_folder(config)
+    copied_als_folder = copy_folder(config)
 
     print(f'\nConverting HAG to z')
-    # convert_hag_to_z(config)
+    convert_hag_to_z(config)
 
     print(f'\nSplitting into {config.n_splits} folds')
-    # train_folders, test_folders = stratified_k_fold_split(config)
+    train_folders, test_folders = stratified_k_fold_split(config)
 
     print(f'\nAugmenting')
-    # augmentation(config)
+    augmentation(config)
 
     print(f'\nConverting to txt')
-    # convert_to_txt(config)
+    convert_to_txt(config)
 
     print(f'\nCopying to datasets')
-    # copy_to_datasets(config)
+    copy_to_datasets(config)
 
     print(f'\nRunning training')
     run_training(config)
 
     plot_train_and_val_accuracy_for_all_folds(config)
+    plot_test_results(config)
 
 def main():
 
+    first_kpconv_subsampling_dl = 0.25
+
     config = PipelineConfig(
-    input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
-    copied_folder = '/media/davidhersh/T7 Shield/pre-processing/CopiedJan5',
-    dataset_dir = '/media/davidhersh/T7 Shield/DataJan5',
-    saving_path= '/media/davidhersh/T7 Shield/DataJan5',
     # Running each
     max_epochs = 150,
-    first_kpconv_subsampling_dl = 0.4,
-    min_point_threshold = 2000,
+    first_kpconv_subsampling_dl = first_kpconv_subsampling_dl,
+    min_point_threshold = 1000,
     max_point_threshold = 50000,
+    input_folder='/media/davidhersh/T7 Shield/ALS_data',
+    copied_folder = f'/media/davidhersh/T7 Shield/pre-processing/Copied_Jan13_{first_kpconv_subsampling_dl}',
+    dataset_dir = '/media/davidhersh/T7 Shield/DataJan13',
+    saving_path= '/media/davidhersh/T7 Shield/DataJan13',
     # k-fold
     n_splits = 5,
     # Augmentation values
-    min_subsample_distance = 0.4,
+    min_subsample_distance = 0.00001,
     rotations = 4,
     normals_search_radius = 2
     )

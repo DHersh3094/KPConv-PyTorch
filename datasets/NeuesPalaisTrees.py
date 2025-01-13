@@ -193,6 +193,9 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
             pass
         elif self.config.in_features_dim == 4:
             stacked_features = np.hstack((stacked_features, stacked_normals))
+        elif (self.config.in_features_dim == 2) and (self.config.ignore_normals == True):
+            # nx, ny, nz, and intensity is 4th
+            stacked_features = np.hstack((stacked_features, stacked_normals[:,3:]))
         else:
             raise ValueError('Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)')
 
@@ -280,10 +283,11 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                     # print(f'Loading PCs not subsampled')
                     # print(f'Data shape: {data.shape}')
                     points = data[:, :3]
-                    normals = data[:, 3:6]
+                    normals = data[:, 3:]
 
                 print('', end='\r')
-                print(fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N), end='', flush=True)
+                print('\r' + fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N) + ' ' * 10, end='', flush=True)
+                # print(fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N), end='', flush=True)
 
                 # Add to list
                 input_points += [points]

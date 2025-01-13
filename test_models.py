@@ -106,9 +106,11 @@ if __name__ == '__main__':
     # chosen_log = 'results/Log_2024-09-15_18-18-11'
     # chosen_log = "results/Log_2024-09-17_13-07-55"
     # chosen_log = "Dec11_v33_0.4subsample_kpsubsample_0.4"
-    chosen_log = '/media/davidhersh/T7 Shield/results_2024_12_12_17_44/data_1_subsample_0.4'
-    # parser.add_argument('--results_path', type=str, default=None, help='Results path')
+    # chosen_log = '/media/davidhersh/T7 Shield/results_2024_12_12_17_44/data_1_subsample_0.4'
+    parser.add_argument('--results_path', type=str, default=None, help='Results path')
     parser.add_argument('--data_path', type=str, default=None, help='Data path')
+    parser.add_argument('--num_test_models', type=int,  help='# of trees')
+
     # parser.add_argument('--test_saving_path', type=str, default=None, help='Test saving path')
 
     args = parser.parse_args()
@@ -123,7 +125,8 @@ if __name__ == '__main__':
     on_val = True
 
     # Deal with 'last_XXXXXX' choices
-    chosen_log = model_choice(chosen_log)
+    # chosen_log = model_choice(chosen_log)
+    chosen_log = args.results_path
 
     ############################
     # Initialize the environment
@@ -190,7 +193,7 @@ if __name__ == '__main__':
         test_sampler = ModelNet40Sampler(test_dataset)
         collate_fn = ModelNet40Collate
     if config.dataset == 'NeuesPalaisTrees':
-        test_dataset = NeuesPalaisTreesDataset(config, mode='test')
+        test_dataset = NeuesPalaisTreesDataset(config, mode='test',  num_test_models = int(args.num_test_models))
         test_sampler = NeuesPalaisTreesSampler(test_dataset)
         collate_fn = NeuesPalaisTreesCollate
     elif config.dataset == 'S3DIS':

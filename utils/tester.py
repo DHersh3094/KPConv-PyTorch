@@ -81,7 +81,7 @@ class ModelTester:
     # Test main methods
     # ------------------------------------------------------------------------------------------------------------------
 
-    def classification_test(self, net, test_loader, config, num_votes=10, debug=False):
+    def classification_test(self, net, test_loader, config, num_votes=50, debug=False):
         import os
         import numpy as np
         output_folder = self.output_folder

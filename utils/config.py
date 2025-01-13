@@ -53,7 +53,11 @@ class Config:
     in_points_dim = 3
 
     # Dimension of input features
-    in_features_dim = 4
+    in_features_dim = 1
+
+    # Including extra features
+    # in_features_dim = 2
+    # ignore_normals = True
 
     # Radius of the input sphere (ignored for models, only used for point clouds)
     in_radius = 1.0

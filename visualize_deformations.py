@@ -37,6 +37,7 @@ from torch.utils.data import DataLoader
 from utils.config import Config
 from utils.visualizer import ModelVisualizer
 from models.architectures import KPCNN, KPFCNN
+from models.blocks import KPConv
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 KP_CLOUDS_DIR = os.path.join(BASE_DIR, 'KP_clouds')
@@ -80,6 +81,45 @@ def model_choice(chosen_log):
     return chosen_log
 
 
+def print_points_for_each_deform_idx(net, loader, config):
+    """
+    Run a single forward pass on the first batch and print
+    how many points go into each deformable KPConv layer.
+    """
+    net.eval()  # Set the network to eval mode (no dropout, etc.)
+
+    # We only need one batch to see the shape of the data
+    for batch_idx, batch in enumerate(loader):
+        # Forward pass
+        _ = net(batch, config)
+
+        # Loop through all modules (layers) of the network
+        deform_i = 0
+        for module in net.modules():
+            # Check if it's a KPConv and if it's deformable
+            if isinstance(module, KPConv) and module.deformable:
+                # The shape of `module.min_d2` is typically [B, num_kernel_points]
+                # But each row corresponds to the number of input points used here
+                # So the batch dimension => #points in that layer
+                n_points = module.min_d2.shape[0] if module.min_d2 is not None else 0
+
+                print(f"Deform idx={deform_i}, #points={n_points}")
+                deform_i += 1
+
+        # Break so we only look at one batch
+        break
+
+def print_layer_point_counts(loader):
+    """
+    Print how many points are in each layer for the first batch.
+    This shows how the dataset/dataloader progressively subsamples points.
+    """
+    for batch_idx, batch in enumerate(loader):
+        for l, pts_l in enumerate(batch.points):
+            print(f"Layer {l}: {pts_l.shape[0]} points")
+        break
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 #
 #           Main Call
@@ -97,7 +137,7 @@ if __name__ == '__main__':
     #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
     #       > 'results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
 
-    chosen_log = '/media/davidhersh/T7 Shield/results_2024_12_12_17_44/data_1_subsample_0.4'
+    chosen_log = '/media/davidhersh/T7 Shield/DataJan5/results_minsubsample_0.4/data_2_subsample_0.4'
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -135,6 +175,7 @@ if __name__ == '__main__':
 
     # Initialize configuration class
     config = Config()
+    config.path = '/media/davidhersh/T7 Shield/DataJan5/data_2_subsample_0.4'
     config.load(chosen_log)
 
     ##################################
@@ -143,10 +184,10 @@ if __name__ == '__main__':
 
     # Change parameters for the test here. For example, you can stop augmenting the input data.
 
-    config.augment_noise = 0.0001
-    config.batch_num = 1
-    config.in_radius = 2.0
-    config.input_threads = 0
+    # config.augment_noise = 1
+    # config.batch_num = 1
+    # config.in_radius = 2.0
+    # config.input_threads = 0
 
     ##############
     # Prepare Data
@@ -180,6 +221,7 @@ if __name__ == '__main__':
                              collate_fn=collate_fn,
                              num_workers=config.input_threads,
                              pin_memory=True)
+    print_layer_point_counts(test_loader)
 
     # Calibrate samplers
     test_sampler.calibration(test_loader, verbose=True)
@@ -191,6 +233,7 @@ if __name__ == '__main__':
     t1 = time.time()
     if config.dataset_task == 'classification':
         net = KPCNN(config)
+        print_points_for_each_deform_idx(net, test_loader, config)
     elif config.dataset_task in ['cloud_segmentation', 'slam_segmentation']:
         net = KPFCNN(config, test_dataset.label_values, test_dataset.ignored_labels)
     else:

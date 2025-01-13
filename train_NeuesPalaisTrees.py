@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--do_subsample', action='store_false', help='Enable subsampling or not')
+    parser.add_argument('--do_subsample', help='Enable subsampling or not')
     parser.add_argument('--first_subsampling_dl', type=float, default=None, help='The KPConv subsampling value')
     parser.add_argument('--max_epoch', type=int, default=None, help='Override max epoch')
     parser.add_argument('--data_path', type=str, default=None, help='Data path')
