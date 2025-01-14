@@ -109,6 +109,8 @@ if __name__ == '__main__':
     # chosen_log = '/media/davidhersh/T7 Shield/results_2024_12_12_17_44/data_1_subsample_0.4'
     parser.add_argument('--results_path', type=str, default=None, help='Results path')
     parser.add_argument('--data_path', type=str, default=None, help='Data path')
+    parser.add_argument('--do_subsample', help='Enable subsampling or not')
+    parser.add_argument('--first_subsampling_dl', type=float, default=None, help='The KPConv subsampling value')
     parser.add_argument('--num_test_models', type=int,  help='# of trees')
 
     # parser.add_argument('--test_saving_path', type=str, default=None, help='Test saving path')
@@ -159,6 +161,9 @@ if __name__ == '__main__':
 
     if args.data_path is not None:
         config.path = args.data_path
+
+    if args.first_subsampling_dl is not None:
+        config.first_subsampling_dl = args.first_subsampling_dl
 
     ##################################
     # Change model parameters for test

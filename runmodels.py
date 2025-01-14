@@ -20,6 +20,7 @@ from collections import Counter
 from sklearn.model_selection import StratifiedKFold
 from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree
+from sklearn.preprocessing import MinMaxScaler
 from jakteristics import las_utils, compute_features, FEATURE_NAMES
 from tqdm import tqdm
 import re
@@ -28,7 +29,7 @@ import tempfile
 class PipelineConfig:
     def __init__(self, input_folder, copied_folder, dataset_dir, min_point_threshold, max_point_threshold, n_splits,
                  min_subsample_distance, rotations, normals_search_radius,
-                 max_epochs, first_kpconv_subsampling_dl, saving_path):
+                 max_epochs, first_kpconv_subsampling_dl, saving_path, features):
         self.input_folder = input_folder
         self.copied_folder = copied_folder
         self.dataset_dir = dataset_dir
@@ -47,6 +48,8 @@ class PipelineConfig:
 
         self.num_train_files = None
         self.num_test_files = None
+
+        self.features = features
 
         # Dictionary mapper for renaming labels
         self.label_mapper = {
@@ -210,6 +213,19 @@ def calculate_normals(config, las_file):
         las_utils.write_with_extra_dims(las_file, output_file, features, FEATURE_NAMES)
         os.remove(las_file)
 
+def normalize_intensity(config, las_file):
+    if 'intensity' in config.features:
+        las = lp.read(las_file)
+        intensities = las.intensity
+
+        scalar = MinMaxScaler(feature_range=(0,1))
+
+        intensities_reshaped = intensities.reshape(-1,1)
+        normalized_intensities = scalar.fit_transform(intensities_reshaped).flatten()
+        las.intensity = normalized_intensities.astype(np.float32)
+        las.write(las_file)
+    else:
+        pass
 
 # In[93]:
 
@@ -393,6 +409,9 @@ def augmentation(config):
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
 
+                if 'intensity' in config.features:
+                    normalize_intensity(config, las_file=os.path.join(folder, las_file))
+
                 normalize_xy(las_file=os.path.join(folder, las_file))
 
                 poisson_subsample(config, las_file=os.path.join(folder, las_file))
@@ -423,8 +442,12 @@ def convert_to_txt(config):
             output_file = las_file.replace('.laz', '.txt')
             
             with open(os.path.join(folder, output_file), 'w') as f:
-                for x, y, z, nx, ny, nz in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz):
-                    f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}\n')
+                if 'intensity' in config.features:
+                    for x, y, z, nx, ny, nz, intensity in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz, las.intensity):
+                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}, {intensity}\n')
+                else:
+                    for x, y, z, nx, ny, nz in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz):
+                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}\n')
 
 
 # In[100]:
@@ -781,16 +804,17 @@ def main():
 
     config = PipelineConfig(
     # Running each
-    max_epochs = 150,
+    max_epochs = 5,
     first_kpconv_subsampling_dl = first_kpconv_subsampling_dl,
     min_point_threshold = 1000,
-    max_point_threshold = 50000,
+    max_point_threshold = 1200,
+    features = [],
     input_folder='/media/davidhersh/T7 Shield/ALS_data',
-    copied_folder = f'/media/davidhersh/T7 Shield/pre-processing/Copied_Jan13_{first_kpconv_subsampling_dl}',
-    dataset_dir = '/media/davidhersh/T7 Shield/DataJan13',
-    saving_path= '/media/davidhersh/T7 Shield/DataJan13',
+    copied_folder = f'/media/davidhersh/T7 Shield/pre-processing/Copied_Jan14_{first_kpconv_subsampling_dl}',
+    dataset_dir = '/media/davidhersh/T7 Shield/DataJan14',
+    saving_path= '/media/davidhersh/T7 Shield/DataJan14',
     # k-fold
-    n_splits = 5,
+    n_splits = 3,
     # Augmentation values
     min_subsample_distance = 0.00001,
     rotations = 4,

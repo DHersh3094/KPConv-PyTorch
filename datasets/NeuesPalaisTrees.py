@@ -285,16 +285,16 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                     points = data[:, :3]
                     normals = data[:, 3:]
 
-                print('', end='\r')
-                print('\r' + fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N) + ' ' * 10, end='', flush=True)
+                # print('', end='\r')
+                # print('\r' + fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N) + ' ' * 10, end='', flush=True)
                 # print(fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N), end='', flush=True)
 
                 # Add to list
                 input_points += [points]
                 input_normals += [normals]
 
-            print('', end='\r')
-            print(fmt_str.format('#' * progress_n, 100), end='', flush=True)
+            # print('', end='\r')
+            # print(fmt_str.format('#' * progress_n, 100), end='', flush=True)
 
             # Get labels
             # label_names = ['_'.join(name.split('_')[:-1]) for name in names]

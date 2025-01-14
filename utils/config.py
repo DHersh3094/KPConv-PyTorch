@@ -95,7 +95,7 @@ class Config:
 
     # Size of the first subsampling grid in meter
     first_subsampling_dl = 0.75
-    do_subsample = False
+    do_subsample = True
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
