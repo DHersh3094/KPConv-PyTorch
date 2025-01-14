@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import laspy as lp
+from laspy import ExtraBytesParams
 import subprocess
 import glob
 import matplotlib.pyplot as plt
@@ -216,19 +217,18 @@ def calculate_normals(config, las_file):
 def normalize_intensity(config, las_file):
     if 'intensity' in config.features:
         las = lp.read(las_file)
-        intensities = las.intensity
+        intensities = las.intensity.astype(np.float64)
 
         scalar = MinMaxScaler(feature_range=(0,1))
 
         intensities_reshaped = intensities.reshape(-1,1)
         normalized_intensities = scalar.fit_transform(intensities_reshaped).flatten()
-        las.intensity = normalized_intensities.astype(np.float32)
+        new_dim = ExtraBytesParams(name='NormalizedIntensity', type='float32')
+        las.add_extra_dim(new_dim)
+        las.NormalizedIntensity = normalized_intensities.astype(np.float32)
         las.write(las_file)
     else:
         pass
-
-# In[93]:
-
 
 def stratified_k_fold_split(config):
     input_folder = config.copied_folder
@@ -444,7 +444,7 @@ def convert_to_txt(config):
             with open(os.path.join(folder, output_file), 'w') as f:
                 if 'intensity' in config.features:
                     for x, y, z, nx, ny, nz, intensity in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz, las.intensity):
-                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}, {intensity}\n')
+                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}, {NormalizedIntensity}\n')
                 else:
                     for x, y, z, nx, ny, nz in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz):
                         f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}\n')
@@ -808,11 +808,11 @@ def main():
     first_kpconv_subsampling_dl = first_kpconv_subsampling_dl,
     min_point_threshold = 1000,
     max_point_threshold = 1200,
-    features = [],
+    features = ['intensity'],
     input_folder='/media/davidhersh/T7 Shield/ALS_data',
-    copied_folder = f'/media/davidhersh/T7 Shield/pre-processing/Copied_Jan14_{first_kpconv_subsampling_dl}',
-    dataset_dir = '/media/davidhersh/T7 Shield/DataJan14',
-    saving_path= '/media/davidhersh/T7 Shield/DataJan14',
+    copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan14_{first_kpconv_subsampling_dl}',
+    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan14',
+    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan14',
     # k-fold
     n_splits = 3,
     # Augmentation values
