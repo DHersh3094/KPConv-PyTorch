@@ -443,8 +443,8 @@ def convert_to_txt(config):
             
             with open(os.path.join(folder, output_file), 'w') as f:
                 if 'intensity' in config.features:
-                    for x, y, z, nx, ny, nz, intensity in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz, las.intensity):
-                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}, {NormalizedIntensity}\n')
+                    for x, y, z, nx, ny, nz, intensity in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz, las.NormalizedIntensity):
+                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}, {intensity}\n')
                 else:
                     for x, y, z, nx, ny, nz in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz):
                         f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}\n')
@@ -669,6 +669,7 @@ def run_training(config, args=None):
 def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
     saving_path = config.saving_path
     n_splits = config.n_splits
+    subsample = config.first_kpconv_subsampling_dl
     folders = [os.path.join(saving_path, f) for f in os.listdir(saving_path) if os.path.isdir(os.path.join(saving_path, f))]
     print(f'Plotting for folders: {folders}')
 
@@ -702,7 +703,7 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
     plt.ylim([0, 100])
     plt.title(f'Training and validation accuracy for {n_splits} folds')
     plt.grid()
-    plt.savefig(os.path.join(saving_path, 'train_accuracy.png'), bbox_inches='tight', dpi=400)
+    plt.savefig(os.path.join(saving_path, f'train_accuracy_{subsample}.png'), bbox_inches='tight', dpi=400)
     plt.show();
 
     return folders
@@ -712,8 +713,9 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
 
 def plot_test_results(config):
     saving_path = config.saving_path
+    subsample = config.first_kpconv_subsampling_dl
     label_mapper = config.label_mapper
-    output_file = os.path.join(saving_path, 'test_results.png')
+    output_file = os.path.join(saving_path, f'test_results_{subsample}.png')
 
     all_test_dirs = [os.path.join(saving_path, f"data_{i}_subsample_{config.min_subsample_distance}", "test")
                      for i in range(1, config.n_splits + 1)]
@@ -748,7 +750,7 @@ def plot_test_results(config):
 
         correct_predictions = np.trace(overall_average_matrix)
         total_predictions = np.sum(overall_average_matrix)
-        overall_accuracy = correct_predictions / total_predictions
+        overall_accuracy = correct_predictions / total_predictions * 100
 
         row_sums = overall_average_matrix.sum(axis=1, keepdims=True)
         normalized_confusion_matrix = overall_average_matrix / row_sums
@@ -760,7 +762,7 @@ def plot_test_results(config):
                     xticklabels=labels, yticklabels=labels, cbar=False,
                     annot_kws={"size": 13})
 
-        plt.title(f'Overall accuracy: {overall_accuracy:.2f}% averaged over {total_files} test iterations')
+        plt.title(f'Overall accuracy: {overall_accuracy:.2f}%')
 
         plt.xlabel('Predicted', fontsize=15, labelpad=10)
         plt.ylabel('True', fontsize=15, labelpad=10)
@@ -800,15 +802,15 @@ def runpipeline(config):
 
 def main():
 
-    first_kpconv_subsampling_dl = 0.25
+    first_kpconv_subsampling_dl = 0.5
 
     config = PipelineConfig(
     # Running each
-    max_epochs = 5,
+    max_epochs = 50,
     first_kpconv_subsampling_dl = first_kpconv_subsampling_dl,
-    min_point_threshold = 1000,
-    max_point_threshold = 1200,
-    features = ['intensity'],
+    min_point_threshold = 2000,
+    max_point_threshold = 2500,
+    features = [],
     input_folder='/media/davidhersh/T7 Shield/ALS_data',
     copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan14_{first_kpconv_subsampling_dl}',
     dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan14',
