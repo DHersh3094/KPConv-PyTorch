@@ -30,9 +30,10 @@ import tempfile
 class PipelineConfig:
     def __init__(self, input_folder, copied_folder, dataset_dir, min_point_threshold, max_point_threshold, n_splits,
                  min_subsample_distance, rotations, normals_search_radius,
-                 max_epochs, first_kpconv_subsampling_dl, saving_path, features):
+                 max_epochs, first_kpconv_subsampling_dl, saving_path, features, architecture):
         self.input_folder = input_folder
         self.copied_folder = copied_folder
+        self.architecture = architecture
         self.dataset_dir = dataset_dir
         self.min_point_threshold = min_point_threshold
         self.max_point_threshold = max_point_threshold
@@ -579,6 +580,7 @@ def run_training(config, args=None):
     all_data_dirs = [os.path.join(config.dataset_dir, f"data_{i}_subsample_{config.min_subsample_distance}")
                      for i in range(1, config.n_splits + 1)]
     saving_path = config.saving_path
+    architecture = config.architecture
     print(f'Saving path: {saving_path}')
     min_subsample_distance = config.min_subsample_distance
     rotations = config.rotations
@@ -606,6 +608,7 @@ def run_training(config, args=None):
 
         #KPConv values
         f.write('KPConv Parameters:\n')
+        f.write(f'Architecture: {architecture}\n')
         f.write('-----------------------\n')
         f.write(f'max_epoch: {max_epochs}\n')
         f.write(f'first_kpconv_subsampling_dl: {first_kpconv_subsampling_dl}\n')
@@ -625,6 +628,7 @@ def run_training(config, args=None):
             num_train_files, num_test_files = calculate_number_of_train_and_test_files(folder)
 
             args = ['--max_epoch',str(max_epochs),
+                    '--architecture', str(architecture),
                     '--first_subsampling_dl',str(first_kpconv_subsampling_dl),
                     '--data_path', folder,
                     '--saving_path', kfold_folder_path,
@@ -704,7 +708,6 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
     plt.title(f'Training and validation accuracy for {n_splits} folds')
     plt.grid()
     plt.savefig(os.path.join(saving_path, f'train_accuracy_{subsample}.png'), bbox_inches='tight', dpi=400)
-    plt.show();
 
     return folders
 
@@ -775,7 +778,7 @@ def plot_test_results(config):
             plt.savefig(output_file, dpi=400, bbox_inches='tight')
 
 def runpipeline(config):
-
+    '''
     print(f'Copying to {config.copied_folder}')
     copied_als_folder = copy_folder(config)
 
@@ -793,7 +796,7 @@ def runpipeline(config):
 
     print(f'\nCopying to datasets')
     copy_to_datasets(config)
-
+    '''
     print(f'\nRunning training')
     run_training(config)
 
@@ -802,19 +805,20 @@ def runpipeline(config):
 
 def main():
 
-    first_kpconv_subsampling_dl = 0.5
+    first_kpconv_subsampling_dl = 0.95
 
     config = PipelineConfig(
     # Running each
     max_epochs = 50,
+    architecture = 'rigid',
     first_kpconv_subsampling_dl = first_kpconv_subsampling_dl,
     min_point_threshold = 2000,
     max_point_threshold = 2500,
     features = [],
     input_folder='/media/davidhersh/T7 Shield/ALS_data',
     copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan14_{first_kpconv_subsampling_dl}',
-    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan14',
-    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan14',
+    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan15',
+    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan15',
     # k-fold
     n_splits = 3,
     # Augmentation values

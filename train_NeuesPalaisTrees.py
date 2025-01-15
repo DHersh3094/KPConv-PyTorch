@@ -66,25 +66,20 @@ class NeuesPalaisTreesConfig(Config):
     # Type of task performed on this dataset (also overwritten)
     dataset_task = 'classification'
 
+    architecture = ['simple',
+                    'resnetb',
+                    'resnetb_strided',
+                    'resnetb',
+                    'resnetb_strided',
+                    'resnetb',
+                    'resnetb_strided',
+                    'resnetb_deformable',
+                    'resnetb_deformable_strided',
+                    'resnetb_deformable',
+                    'global_average']
+
     # Number of CPU threads for the input pipeline
     input_threads = 10
-
-    #########################
-    # Architecture definition
-    #########################
-
-    # Define layers
-    architecture = ['simple',
-                'resnetb',
-                'resnetb_strided',
-                'resnetb',
-                'resnetb_strided',
-                'resnetb',
-                'resnetb_strided',
-                'resnetb_deformable',
-                'resnetb_deformable_strided',
-                'resnetb_deformable',
-                'global_average']
 
     ###################c
     # KPConv parameters
@@ -194,6 +189,7 @@ if __name__ == '__main__':
     parser.add_argument('--saving_path', type=str, default=None, help='Saving path')
     parser.add_argument('--num_train_models', type=int, help='# of trees')
     parser.add_argument('--num_test_models', type=int,  help='# of trees')
+    parser.add_argument('--architecture', type=str, default='rigid', help='Architecture')
 
     args = parser.parse_args()
 
@@ -254,6 +250,42 @@ if __name__ == '__main__':
     if args.max_epoch is not None:
         config.max_epoch = args.max_epoch
         print(f'Using max_epoch from parser: {config.max_epoch}')
+
+    # Pass in architecture choice from parser. 'rigid' or 'deformable'
+    if args.architecture is not None:
+        if args.architecture == 'rigid':
+            print(f'Using rigid architecture')
+            config.architecture = ['simple',
+                            'resnetb',
+                            'resnetb_strided',
+                            'resnetb',
+                            'resnetb',
+                            'resnetb_strided',
+                            'resnetb',
+                            'resnetb',
+                            'resnetb_strided',
+                            'resnetb',
+                            'resnetb',
+                            'resnetb_strided',
+                            'resnetb',
+                            'resnetb',
+                            'global_average']
+
+        elif args.architecture == 'deformable':
+            print(f'Using deformable architecture')
+            config.architecture = ['simple',
+                'resnetb',
+                'resnetb_strided',
+                'resnetb',
+                'resnetb_strided',
+                'resnetb',
+                'resnetb_strided',
+                'resnetb_deformable',
+                'resnetb_deformable_strided',
+                'resnetb_deformable',
+                'global_average']
+        else:
+            sys.exit('Architecture must be either rigid or deformable')
 
     # Path to input data
     if args.data_path is not None:
