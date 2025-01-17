@@ -63,12 +63,13 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         # Dict from labels to names
         self.label_to_names = {
-    0: "FagSyl",
-    1: "PicAbi",
-    2: "PinSyl",
-    3: "PseMen",
-    4: "QuePet",
-    5: "QueRub"
+    0: "CarBet",
+    1: "FagSyl",
+    2: "PicAbi",
+    3: "PinSyl",
+    4: "PseMen",
+    5: "QuePet",
+    6: "QueRub"
     # 2: "Fagussylvatica",
     # 3: "FagussylvaticaAtropunicea",
     # 4: "Platanusxacerifoliatile",
