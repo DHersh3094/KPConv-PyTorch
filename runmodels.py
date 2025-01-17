@@ -5,8 +5,10 @@
 
 
 import os
+import uuid
 import sys
 import pandas as pd
+from collections import defaultdict
 import numpy as np
 from datetime import datetime
 import laspy as lp
@@ -30,11 +32,23 @@ import tempfile
 class PipelineConfig:
     def __init__(self, input_folder, copied_folder, dataset_dir, min_point_threshold, max_point_threshold, n_splits,
                  min_subsample_distance, rotations, normals_search_radius,
-                 max_epochs, first_kpconv_subsampling_dl, saving_path, features, architecture):
+                 max_epochs,
+                 first_kpconv_subsampling_dl,
+                 z_noise,
+                 saving_path,
+                 features,
+                 architecture,
+                 augmentation_process,
+                 decimation_runs,
+                 decimation_percentage):
+
         self.input_folder = input_folder
         self.copied_folder = copied_folder
         self.architecture = architecture
         self.dataset_dir = dataset_dir
+        self.augmentation_process = augmentation_process
+        self.decimation_runs = decimation_runs
+        self.decimation_percentage = decimation_percentage
         self.min_point_threshold = min_point_threshold
         self.max_point_threshold = max_point_threshold
         self.n_splits = n_splits
@@ -55,16 +69,17 @@ class PipelineConfig:
 
         # Dictionary mapper for renaming labels
         self.label_mapper = {
-            0: "European Beech",
-            1: "Norway Spruce",
-            2: "Scots Pine",
-            3: "Douglas Fir",
-            4: "Sessile Oak",
-            5: "Red Oak"
+            0: "European hornbeam",
+            1: "European Beech",
+            2: "Norway Spruce",
+            3: "Scots Pine",
+            4: "Douglas Fir",
+            5: "Sessile Oak",
+            6: "Red Oak",
         }
 
         self.timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
-        self.saving_path = os.path.join(saving_path, f'results_minsubsample_{first_kpconv_subsampling_dl}')
+        self.saving_path = os.path.join(saving_path, f'results_minsubsample_{first_kpconv_subsampling_dl}_{architecture}_{datetime.now().strftime("%Y_%m_%d_%H_%M")}')
         os.makedirs(self.saving_path, exist_ok=True)
 
 
@@ -74,13 +89,17 @@ class PipelineConfig:
 def copy_folder(config):
     input_folder = config.input_folder
     copied_folder=config.copied_folder
+    figure_save_dir = config.dataset_dir
     min_point_threshold=config.min_point_threshold
     max_point_threshold=config.max_point_threshold
-    plot = False
+    plot = True
     redo = True
     """
     Copy single tree ALS files (ending with _g meaning ground classified) for a specific list of trees if they have a minimum point count
     """
+    if not os.path.exists(figure_save_dir):
+        os.makedirs(figure_save_dir)
+
     if redo:
 
         try:
@@ -88,10 +107,6 @@ def copy_folder(config):
                 os.makedirs(copied_folder)
         except OSError:
             print(f'Unable to make folder')
-        # Save figs
-        figdir = copied_folder.replace('/tmp', '/processing_figures')
-        if not os.path.exists(figdir):
-            os.makedirs(figdir)
         
         # Only copy certain species
         species_to_copy = [
@@ -101,7 +116,7 @@ def copy_folder(config):
             "QueRub",
             "PicAbi",
             "QuePet",
-            # "CarBet"
+            "CarBet"
         ]
     
         files = []
@@ -137,10 +152,10 @@ def copy_folder(config):
             plt.bar(species_counter.keys(), species_counter.values())
             plt.ylabel('Number of trees')
             plt.xlabel('Species')
+            plt.grid()
             plt.title(f"Number of trees with more than {min_point_threshold} non-ground points")
-            plt.savefig(os.path.join(figdir, f'species_count_greaterthan_{min_point_threshold}_points.png'), bbox_inches='tight')
-            # plt.show()
-        
+            plt.savefig(os.path.join(figure_save_dir, f'species_count_greaterthan_{min_point_threshold}_points.png'), bbox_inches='tight')
+
         return copied_folder
     
     else:
@@ -233,9 +248,8 @@ def normalize_intensity(config, las_file):
 
 def stratified_k_fold_split(config):
     input_folder = config.copied_folder
-    first_subsample_dl = config.first_kpconv_subsampling_dl
     foldername = input_folder.split('/')[-1]
-    output_folder = input_folder.replace(foldername, f'kfolders_{first_subsample_dl}')
+    output_folder = input_folder.replace(foldername, f'kfolders')
     n_splits = config.n_splits
 
     files = []
@@ -301,6 +315,41 @@ def poisson_subsample(config, las_file):
     subsampled_las.points = las.points[selected_indices]
 
     subsampled_las.write(las_file)
+
+def decimate(config, las_file):
+    decimation_percentage = config.decimation_percentage
+    decimation_runs = config.decimation_runs
+
+    las = lp.read(las_file)
+    points = np.vstack((las.x, las.y, las.z)).transpose()
+
+    for i in range(decimation_runs):
+        # Calculate the number of points to sample based on the percentage
+        num_points = points.shape[0]
+        print(f'Total number of points: {num_points}')
+        point_samples = int(num_points * (decimation_percentage / 100.0))
+        print(f'Point samples: {point_samples}')
+
+        # Randomly sample the points
+        indices = np.random.choice(num_points, point_samples, replace=False)
+        decimated_points = points[indices]
+
+        header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
+        header.offsets = las.header.offsets
+        header.scales = las.header.scales
+
+        decimated_las = lp.LasData(header)
+        decimated_las.points = decimated_points
+
+        for dim_name in las.point_format.dimension_names:
+            if dim_name not in ["X", "Y", "Z"]:
+                setattr(decimated_las, dim_name, getattr(las, dim_name))
+
+        output_file = las_file.replace('.laz', f'_decim_{i}.laz')
+
+        las.write(output_file)
+
+    os.remove(las_file)
 
 
 # In[95]:
@@ -394,12 +443,13 @@ def rotate_las(las_file, rotations):
 
             rotated_las.write(output_file)
 
-# In[98]:
-
+def z_noise(config, las_file):
+    return
 
 # Augment each folder
 
 def augmentation(config):
+     augmentation_process = config.augmentation_process
      rotations=config.rotations
      train_folders = config.train_folders
      test_folders = config.test_folders
@@ -413,11 +463,20 @@ def augmentation(config):
                 if 'intensity' in config.features:
                     normalize_intensity(config, las_file=os.path.join(folder, las_file))
 
-                normalize_xy(las_file=os.path.join(folder, las_file))
+                if 'normalize_xy' in augmentation_process:
+                    normalize_xy(las_file=os.path.join(folder, las_file))
 
-                poisson_subsample(config, las_file=os.path.join(folder, las_file))
+                if 'decimate' in augmentation_process:
+                    decimate(config, las_file=os.path.join(folder, las_file))
 
-                rotate_las(las_file=os.path.join(folder, las_file), rotations=rotations)
+                if 'z_noise' in augmentation_process:
+                    pass
+
+                if 'poisson_subsample' in augmentation_process:
+                    poisson_subsample(config, las_file=os.path.join(folder, las_file))
+
+                if 'rotate_las' in augmentation_process:
+                    rotate_las(las_file=os.path.join(folder, las_file), rotations=rotations)
 
 
      for folder in all_folders:
@@ -481,7 +540,7 @@ def copy_to_datasets(config):
     for i in range(1, n_splits+1):
         
         # Make a folder for each dataset
-        datadir = os.path.join(dataset_dir, f'data_{i}_subsample_{min_subsample_distance}')
+        datadir = os.path.join(dataset_dir, f'data_{i}')
         all_data_dirs.append(datadir)
         os.makedirs(datadir, exist_ok=True)
         
@@ -577,7 +636,7 @@ def calculate_number_of_train_and_test_files(data_folder):
 #     self.num_models = args.num_test_models
 
 def run_training(config, args=None):
-    all_data_dirs = [os.path.join(config.dataset_dir, f"data_{i}_subsample_{config.min_subsample_distance}")
+    all_data_dirs = [os.path.join(config.dataset_dir, f"data_{i}")
                      for i in range(1, config.n_splits + 1)]
     saving_path = config.saving_path
     architecture = config.architecture
@@ -598,8 +657,14 @@ def run_training(config, args=None):
     with open(parameters, 'w') as f:
         f.write('Augmentation parameters:\n')
         f.write('-----------------------\n')
+        f.write(f'Augmentation process: {config.augmentation_process}\n')
         f.write(f'Minimum distance between points: {min_subsample_distance}\n')
         f.write(f'Rotations: {rotations}\n')
+        if 'z_noise' in config.augmentation_process:
+            f.write(f'Z noise: {config.z_noise}\n')
+        if 'decimate' in config.augmentation_process:
+            f.write(f'Decimation runs: {config.decimation_runs}\n')
+            f.write(f'Decimation percentage: {config.decimation_percentage}\n')
         f.write('\n')
 
         # k-fold
@@ -670,7 +735,8 @@ def run_training(config, args=None):
 # In[104]:
 
 
-def plot_train_and_val_accuracy_for_all_folds(config, num_classes=6):
+def plot_train_and_val_accuracy_for_all_folds(config, num_classes=None):
+    num_classes = len(config.label_mapper)
     saving_path = config.saving_path
     n_splits = config.n_splits
     subsample = config.first_kpconv_subsampling_dl
@@ -720,7 +786,7 @@ def plot_test_results(config):
     label_mapper = config.label_mapper
     output_file = os.path.join(saving_path, f'test_results_{subsample}.png')
 
-    all_test_dirs = [os.path.join(saving_path, f"data_{i}_subsample_{config.min_subsample_distance}", "test")
+    all_test_dirs = [os.path.join(saving_path, f"data_{i}", "test")
                      for i in range(1, config.n_splits + 1)]
 
     overall_average_matrix = None
@@ -805,22 +871,28 @@ def runpipeline(config):
 
 def main():
 
-    first_kpconv_subsampling_dl = 0.95
+    first_kpconv_subsampling_dl =0.5
 
     config = PipelineConfig(
     # Running each
     max_epochs = 50,
-    architecture = 'rigid',
+    architecture = 'rigid', # 'rigid' or 'deformable'
     first_kpconv_subsampling_dl = first_kpconv_subsampling_dl,
+    augmentation_process = ['normalize_xy', 'rotate_las'],
+        
+    # Set augmentation parameters
+    decimation_runs = 2,
+    decimation_percentage=90,
+    z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
     max_point_threshold = 2500,
     features = [],
     input_folder='/media/davidhersh/T7 Shield/ALS_data',
-    copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan14_{first_kpconv_subsampling_dl}',
-    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan15',
-    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan15',
+    copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan17',
+    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan17',
+    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan17',
     # k-fold
-    n_splits = 3,
+    n_splits = 2,
     # Augmentation values
     min_subsample_distance = 0.00001,
     rotations = 4,
