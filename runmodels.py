@@ -21,6 +21,7 @@ plt.rcParams['font.size'] = 14
 import shutil
 from collections import Counter
 from sklearn.model_selection import StratifiedKFold
+from sklearn.utils.class_weight import compute_class_weight
 from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree
 from sklearn.preprocessing import MinMaxScaler
@@ -30,8 +31,15 @@ import re
 import tempfile
 
 class PipelineConfig:
-    def __init__(self, input_folder, copied_folder, dataset_dir, min_point_threshold, max_point_threshold, n_splits,
-                 min_subsample_distance, rotations, normals_search_radius,
+    def __init__(self, input_folder,
+                 copied_folder,
+                 dataset_dir,
+                 min_point_threshold,
+                 max_point_threshold,
+                 n_splits,
+                 min_subsample_distance,
+                 rotations,
+                 normals_search_radius,
                  max_epochs,
                  first_kpconv_subsampling_dl,
                  z_noise,
@@ -40,7 +48,9 @@ class PipelineConfig:
                  architecture,
                  augmentation_process,
                  decimation_runs,
-                 decimation_percentage):
+                 decimation_percentage,
+                 num_kernel_points,
+                 labels_to_names):
 
         self.input_folder = input_folder
         self.copied_folder = copied_folder
@@ -58,12 +68,18 @@ class PipelineConfig:
         self.normals_search_radius = normals_search_radius
         self.max_epochs = max_epochs
         self.first_kpconv_subsampling_dl = first_kpconv_subsampling_dl
+        self.num_kernel_points = num_kernel_points
+        self.labels_to_names = labels_to_names
+        self.class_weights = None
+
 
         self.train_folders = None
         self.test_folders = None
 
         self.num_train_files = None
         self.num_test_files = None
+
+        self.num_val_files = None
 
         self.features = features
 
@@ -79,7 +95,7 @@ class PipelineConfig:
         }
 
         self.timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
-        self.saving_path = os.path.join(saving_path, f'results_minsubsample_{first_kpconv_subsampling_dl}_{architecture}_{datetime.now().strftime("%Y_%m_%d_%H_%M")}')
+        self.saving_path = os.path.join(saving_path, f'results_minsubsample_{first_kpconv_subsampling_dl}_{architecture}_kp_{num_kernel_points}_{datetime.now().strftime("%Y_%m_%d_%H_%M")}')
         os.makedirs(self.saving_path, exist_ok=True)
 
 
@@ -100,6 +116,9 @@ def copy_folder(config):
     if not os.path.exists(figure_save_dir):
         os.makedirs(figure_save_dir)
 
+    if not os.path.exists(config.dataset_dir):
+        os.mkdir(config.dataset_dir)
+
     if redo:
 
         try:
@@ -109,15 +128,8 @@ def copy_folder(config):
             print(f'Unable to make folder')
         
         # Only copy certain species
-        species_to_copy = [
-            "PseMen",
-            "FagSyl",
-            "PinSyl",
-            "QueRub",
-            "PicAbi",
-            "QuePet",
-            "CarBet"
-        ]
+        species_to_copy = list(config.labels_to_names.values())
+
     
         files = []
         species_counter = Counter()
@@ -146,6 +158,24 @@ def copy_folder(config):
                     pass
         print(f'Copying {len(files)} files')
         print(f'Unique species: {species_counter}')
+
+        # Calculate classes
+        classes = sorted(list(species_counter.keys()))
+        y = []
+        for cls, count in species_counter.items():
+            y.extend([cls] * count)
+        y = np.array(y)
+        class_weights = compute_class_weight('balanced',
+                                             classes=np.array(classes),
+                                             y=y)
+        class_weights = list(class_weights)
+        config.class_weights = class_weights
+        print(f'Classes: {classes}')
+        print(f'Class weights: {class_weights}')
+
+        # Save class weights to .txt file to be loaded during training because copying folder and augmentation only needs to occur once in some cases
+        class_weights_file = os.path.join(config.dataset_dir, 'class_weights.npy')
+        np.save(class_weights_file, np.array(class_weights))
         
         if plot:
             fig, ax = plt.subplots(figsize=(12,8))
@@ -650,6 +680,12 @@ def run_training(config, args=None):
     if not os.path.exists(saving_path):
         os.makedirs(saving_path)
 
+    # If config.class_weights is none, then load the .npy with class weights
+    if config.class_weights is None:
+        class_weights_file = os.path.join(config.dataset_dir, 'class_weights.npy')
+        config.class_weights = list(np.load(class_weights_file))
+
+
     # Save all parameters in results
     parameters = os.path.join(saving_path, 'parameters.txt')
     logfile = os.path.join(saving_path, 'logs.txt')
@@ -671,11 +707,14 @@ def run_training(config, args=None):
         f.write(f'k-folds: {n_splits}\n')
         f.write('\n')
 
+        f.write(f'Class weights: {config.class_weights}\n')
+
         #KPConv values
         f.write('KPConv Parameters:\n')
-        f.write(f'Architecture: {architecture}\n')
         f.write('-----------------------\n')
+        f.write(f'Architecture: {architecture}\n')
         f.write(f'max_epoch: {max_epochs}\n')
+        f.write(f'Number of kernel points: {config.num_kernel_points}\n')
         f.write(f'first_kpconv_subsampling_dl: {first_kpconv_subsampling_dl}\n')
 
 
@@ -695,6 +734,8 @@ def run_training(config, args=None):
             args = ['--max_epoch',str(max_epochs),
                     '--architecture', str(architecture),
                     '--first_subsampling_dl',str(first_kpconv_subsampling_dl),
+                    '--class_w', str(config.class_weights),
+                    '--num_kernel_points', str(config.num_kernel_points),
                     '--data_path', folder,
                     '--saving_path', kfold_folder_path,
                     '--num_train_models', str(num_train_files),
@@ -707,6 +748,7 @@ def run_training(config, args=None):
                 text=True,
                 bufsize=1
             )
+            print(f'Training process: {process}')
             for line in process.stdout:
                 print(line, end='')
                 logfile.write(line)
@@ -844,7 +886,7 @@ def plot_test_results(config):
             plt.savefig(output_file, dpi=400, bbox_inches='tight')
 
 def runpipeline(config):
-    '''
+
     print(f'Copying to {config.copied_folder}')
     copied_als_folder = copy_folder(config)
 
@@ -862,7 +904,7 @@ def runpipeline(config):
 
     print(f'\nCopying to datasets')
     copy_to_datasets(config)
-    '''
+
     print(f'\nRunning training')
     run_training(config)
 
@@ -876,23 +918,35 @@ def main():
     config = PipelineConfig(
     # Running each
     max_epochs = 50,
-    architecture = 'rigid', # 'rigid' or 'deformable'
+    architecture = 'deformable', # 'rigid' or 'deformable'
     first_kpconv_subsampling_dl = first_kpconv_subsampling_dl,
+    num_kernel_points = 19,
     augmentation_process = ['normalize_xy', 'rotate_las'],
+
+    # Used in copying folder to calculate class weights
+    labels_to_names={
+        0: "CarBet",
+        1: "FagSyl",
+        2: "PicAbi",
+        3: "PinSyl",
+        4: "PseMen",
+        5: "QuePet",
+        6: "QueRub"
+    },
         
     # Set augmentation parameters
     decimation_runs = 2,
     decimation_percentage=90,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
-    max_point_threshold = 2500,
+    max_point_threshold = 2300,
     features = [],
     input_folder='/media/davidhersh/T7 Shield/ALS_data',
-    copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan17',
-    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan17',
-    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan17',
+    copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan17_v2',
+    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan17_v2',
+    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan17_v2',
     # k-fold
-    n_splits = 2,
+    n_splits = 3,
     # Augmentation values
     min_subsample_distance = 0.00001,
     rotations = 4,

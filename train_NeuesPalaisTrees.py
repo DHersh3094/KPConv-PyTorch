@@ -190,6 +190,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_train_models', type=int, help='# of trees')
     parser.add_argument('--num_test_models', type=int,  help='# of trees')
     parser.add_argument('--architecture', type=str, default='rigid', help='Architecture')
+    parser.add_argument('--num_kernel_points', type=int, default=None, help='# of kernel points')
+    parser.add_argument('--class_w', type=list, default=None, help='Class weights')
 
     args = parser.parse_args()
 
@@ -251,6 +253,10 @@ if __name__ == '__main__':
         config.max_epoch = args.max_epoch
         print(f'Using max_epoch from parser: {config.max_epoch}')
 
+    if args.num_kernel_points is not None:
+        print(f'Updating # of kernel points to {args.num_kernel_points}')
+        config.num_kernel_points = args.num_kernel_points
+
     # Pass in architecture choice from parser. 'rigid' or 'deformable'
     if args.architecture is not None:
         if args.architecture == 'rigid':
@@ -301,6 +307,9 @@ if __name__ == '__main__':
 
     if args.first_subsampling_dl is not None:
         config.first_subsampling_dl = args.first_subsampling_dl
+
+    if args.class_w is not None:
+        config.class_w = args.class_w
 
     if previous_training_path:
         config.load(os.path.join('results', previous_training_path))
