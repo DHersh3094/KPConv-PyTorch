@@ -126,6 +126,7 @@ class KPCNN(nn.Module):
             class_w = torch.from_numpy(np.array(config.class_w, dtype=np.float32))
             self.criterion = torch.nn.CrossEntropyLoss(weight=class_w, ignore_index=-1)
         else:
+            print(f'**NO CLASS WEIGHTS SET**')
             self.criterion = torch.nn.CrossEntropyLoss(ignore_index=-1)
         self.deform_fitting_mode = config.deform_fitting_mode
         self.deform_fitting_power = config.deform_fitting_power

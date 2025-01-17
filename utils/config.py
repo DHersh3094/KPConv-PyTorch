@@ -162,7 +162,8 @@ class Config:
     segloss_balance = 'none'
 
     # Choose weights for class (used in segmentation loss). Empty list for no weights
-    class_w = [0.52646638, 0.78632479, 1.10510511, 1.27777778, 1.59307359, 1.94708995]
+    class_w = []
+    # class_w = [0.52646638, 0.78632479, 1.10510511, 1.27777778, 1.59307359, 1.94708995]
 
     # Deformable offset loss
     # 'point2point' fitting geometry by penalizing distance from deform point to input points
