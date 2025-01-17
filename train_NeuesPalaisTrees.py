@@ -191,7 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_test_models', type=int,  help='# of trees')
     parser.add_argument('--architecture', type=str, default='rigid', help='Architecture')
     parser.add_argument('--num_kernel_points', type=int, default=None, help='# of kernel points')
-    parser.add_argument('--class_w', type=list, default=None, help='Class weights')
+    parser.add_argument('--class_w', type=float, nargs='+', default=None, help='Class weights')
 
     args = parser.parse_args()
 

@@ -681,9 +681,11 @@ def run_training(config, args=None):
         os.makedirs(saving_path)
 
     # If config.class_weights is none, then load the .npy with class weights
+    print(f'Loading class weights')
     if config.class_weights is None:
+        print(f'No class weights in config, loading from .npy...')
         class_weights_file = os.path.join(config.dataset_dir, 'class_weights.npy')
-        config.class_weights = list(np.load(class_weights_file))
+        config.class_weights = np.load(class_weights_file, allow_pickle=True).tolist()
 
 
     # Save all parameters in results
@@ -718,7 +720,7 @@ def run_training(config, args=None):
         f.write(f'first_kpconv_subsampling_dl: {first_kpconv_subsampling_dl}\n')
 
 
-    with open(logfile, 'a') as logfile:
+    with (open(logfile, 'a') as logfile):
 
         for folder in all_data_dirs:
             print(f'folder: {folder}')
@@ -734,7 +736,7 @@ def run_training(config, args=None):
             args = ['--max_epoch',str(max_epochs),
                     '--architecture', str(architecture),
                     '--first_subsampling_dl',str(first_kpconv_subsampling_dl),
-                    '--class_w', str(config.class_weights),
+                    '--class_w' ] + [str(w) for w in config.class_weights] + [
                     '--num_kernel_points', str(config.num_kernel_points),
                     '--data_path', folder,
                     '--saving_path', kfold_folder_path,
