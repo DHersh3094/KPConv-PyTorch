@@ -43,7 +43,7 @@ from utils.config import Config
 from utils.tester import ModelTester
 from models.architectures import KPCNN, KPFCNN
 
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+#os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
