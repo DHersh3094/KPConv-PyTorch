@@ -123,6 +123,7 @@ class KPCNN(nn.Module):
         ################
 
         if len(config.class_w) > 0:
+            print(f'Class weights: {config.class_w}')
             class_w = torch.from_numpy(np.array(config.class_w, dtype=np.float32))
             self.criterion = torch.nn.CrossEntropyLoss(weight=class_w, ignore_index=-1)
         else:
