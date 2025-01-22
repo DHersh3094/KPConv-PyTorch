@@ -164,7 +164,12 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
             label = self.label_to_idx[self.input_labels[p_i]]
 
             # Data augmentation
-            points, normals, scale, R = self.augmentation_transform(points, normals)
+            # points, normals, scale, R = self.augmentation_transform(points, normals)
+
+            # Augment for when ignoring normals and using intensity alone as feature
+            # points, _, scale, R = self.augmentation_transform(points, normals=None)
+            R = 0
+            scale = 1
 
             # Stack batch
             tp_list += [points]
@@ -182,6 +187,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         stacked_points = np.concatenate(tp_list, axis=0)
         stacked_normals = np.concatenate(tn_list, axis=0)
+        # stacked_normals = np.ones(stacked_normals.shape).astype(np.float32)
         labels = np.array(tl_list, dtype=np.int64)
         model_inds = np.array(ti_list, dtype=np.int32)
         stack_lengths = np.array([tp.shape[0] for tp in tp_list], dtype=np.int32)
@@ -196,10 +202,14 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         elif self.config.in_features_dim == 4:
             # print(f'Using normals and XYZ')
             stacked_features = np.hstack((stacked_features, stacked_normals))
-        elif (self.config.in_features_dim == 2) and (self.config.ignore_normals == True):
+            # print(f'Stacked features shape: {stacked_features.shape}')
+            # print(f'First line:\n')
+            # print(stacked_features[0])
+        elif self.config.in_features_dim == 2:
             # nx, ny, nz, and intensity is 4th
             # print(f'Using intensity as extra feature...')
             stacked_features = np.hstack((stacked_features, stacked_normals[:,3:4]))
+            # print(f'Shape of stacked features: {stacked_features.shape}')
         else:
             raise ValueError('Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)')
 
@@ -283,6 +293,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                     points, normals = grid_subsampling(data[:, :3],
                                                        features=data[:, 3:],
                                                        sampleDl=self.config.first_subsampling_dl)
+                    print(f'Shape of input features from grid_subsample: {normals.shape}')
                 else:
                     # print(f'Loading PCs not subsampled')
                     # print(f'Data shape: {data.shape}')
