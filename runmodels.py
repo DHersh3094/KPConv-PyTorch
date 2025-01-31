@@ -8,6 +8,7 @@ import os
 import uuid
 import sys
 import pandas as pd
+# import open3d as o3d
 from collections import defaultdict
 import numpy as np
 from datetime import datetime
@@ -40,6 +41,8 @@ class PipelineConfig:
                  min_subsample_distance,
                  rotations,
                  normals_search_radius,
+                 knn,
+                 normals_method,
                  max_epochs,
                  first_kpconv_subsampling_dl,
                  z_noise,
@@ -64,6 +67,8 @@ class PipelineConfig:
         self.n_splits = n_splits
         self.min_subsample_distance = min_subsample_distance
         self.normals_search_radius = normals_search_radius
+        self.normals_method = normals_method
+        self.knn = knn,
         self.rotations = rotations
         self.normals_search_radius = normals_search_radius
         self.max_epochs = max_epochs
@@ -104,10 +109,10 @@ class PipelineConfig:
 
 def copy_folder(config):
     input_folder = config.input_folder
-    copied_folder=config.copied_folder
+    copied_folder = config.copied_folder
     figure_save_dir = config.dataset_dir
-    min_point_threshold=config.min_point_threshold
-    max_point_threshold=config.max_point_threshold
+    min_point_threshold = config.min_point_threshold
+    max_point_threshold = config.max_point_threshold
     plot = True
     redo = True
     """
@@ -126,35 +131,34 @@ def copy_folder(config):
                 os.makedirs(copied_folder)
         except OSError:
             print(f'Unable to make folder')
-        
+
         # Only copy certain species
         species_to_copy = list(config.labels_to_names.values())
 
-    
         files = []
         species_counter = Counter()
-        
+
         for root, dirs, filenames in os.walk(input_folder):
             for filename in filenames:
                 try:
                     species_name = filename.split('_')[0]
-        
+
                     # Study area BR06 has an issue with ground. Do not copy for further processing
                     # File format: FagSyl_BR02_04_2019-07-05_q2_ALS-on_g.laz
-                    study_area = filename.split('_')[1] # BR02
-        
-                    if filename.endswith('ALS-on_g.laz') and species_name in species_to_copy and study_area != "BR06":
-                            las = lp.read(os.path.join(root, filename))
-                            number_of_nonground_points = len(las.points[las.classification !=2])
-                            if number_of_nonground_points >= min_point_threshold and number_of_nonground_points <= max_point_threshold:
+                    study_area = filename.split('_')[1]  # BR02
 
-                                try:
-                                    species_counter[species_name] += 1
-                                    files.append(os.path.join(root, filename))  # Store full file paths
-                                    shutil.copyfile(os.path.join(root, filename), os.path.join(copied_folder, filename))
-                                except:
-                                    print(f'Error copying.')
-                except: 
+                    if filename.endswith('ALS-on_g.laz') and species_name in species_to_copy and study_area != "BR06":
+                        las = lp.read(os.path.join(root, filename))
+                        number_of_nonground_points = len(las.points[las.classification != 2])
+                        if number_of_nonground_points >= min_point_threshold and number_of_nonground_points <= max_point_threshold:
+
+                            try:
+                                species_counter[species_name] += 1
+                                files.append(os.path.join(root, filename))  # Store full file paths
+                                shutil.copyfile(os.path.join(root, filename), os.path.join(copied_folder, filename))
+                            except:
+                                print(f'Error copying.')
+                except:
                     pass
         print(f'Copying {len(files)} files')
         print(f'Unique species: {species_counter}')
@@ -176,21 +180,21 @@ def copy_folder(config):
         # Save class weights to .txt file to be loaded during training because copying folder and augmentation only needs to occur once in some cases
         class_weights_file = os.path.join(config.dataset_dir, 'class_weights.npy')
         np.save(class_weights_file, np.array(class_weights))
-        
+
         if plot:
-            fig, ax = plt.subplots(figsize=(12,8))
+            fig, ax = plt.subplots(figsize=(12, 8))
             plt.bar(species_counter.keys(), species_counter.values())
             plt.ylabel('Number of trees')
             plt.xlabel('Species')
             plt.grid()
             plt.title(f"Number of trees with more than {min_point_threshold} non-ground points")
-            plt.savefig(os.path.join(figure_save_dir, f'species_count_greaterthan_{min_point_threshold}_points.png'), bbox_inches='tight')
+            plt.savefig(os.path.join(figure_save_dir, f'species_count_greaterthan_{min_point_threshold}_points.png'),
+                        bbox_inches='tight')
 
         return copied_folder
-    
+
     else:
         print(f'Skipping copying...')
-
 
 
 # In[90]:
@@ -241,24 +245,31 @@ def convert_hag_to_z(config, redo=True):
 # convert_hag_to_z(input_folder=copied_als_folder)
 
 def calculate_normals(config, las_file):
-    normals_search_radius = config.normals_search_radius
-    las = lp.read(las_file)
-    FEATURE_NAMES = ['nx', 'ny', 'nz']
+    method = config.normals_method
+    if method == 'radius':
+        normals_search_radius = config.normals_search_radius
+        las = lp.read(las_file)
+        FEATURE_NAMES = ['nx', 'ny', 'nz']
 
-    # Remove nx, ny, nz if existing
-    for feature_name in FEATURE_NAMES:
-        if feature_name in las.point_format.dimension_names:
-            las.point_format.remove_extra_dimension(feature_name)
+        # Remove nx, ny, nz if existing
+        for feature_name in FEATURE_NAMES:
+            if feature_name in las.point_format.dimension_names:
+                las.point_format.remove_extra_dimension(feature_name)
 
-    xyz = las_utils.read_las_xyz(las_file)
+        xyz = las_utils.read_las_xyz(las_file)
 
-    features = compute_features(xyz, search_radius=normals_search_radius, feature_names=FEATURE_NAMES)
+        features = compute_features(xyz, search_radius=normals_search_radius, feature_names=FEATURE_NAMES)
+        # Remove nan
+        features = np.nan_to_num(features, nan=0.0)
 
-    output_file = las_file.replace('.laz', '_normals.laz')
+        output_file = las_file.replace('.laz', '_normals.laz')
 
-    if not os.path.exists(output_file):
-        las_utils.write_with_extra_dims(las_file, output_file, features, FEATURE_NAMES)
-        os.remove(las_file)
+        if not os.path.exists(output_file):
+            las_utils.write_with_extra_dims(las_file, output_file, features, FEATURE_NAMES)
+            os.remove(las_file)
+    elif method == 'knn':
+        pass
+
 
 def normalize_intensity(config, las_file):
     if 'intensity' in config.features:
@@ -279,7 +290,8 @@ def normalize_intensity(config, las_file):
 def stratified_k_fold_split(config):
     input_folder = config.copied_folder
     foldername = input_folder.split('/')[-1]
-    output_folder = input_folder.replace(foldername, f'kfolders')
+    now = datetime.now().strftime("%Y_%m_%d_%H_%M")
+    output_folder = input_folder.replace(foldername, f'kfolders_{now}')
     n_splits = config.n_splits
 
     files = []
@@ -356,13 +368,13 @@ def decimate(config, las_file):
     for i in range(decimation_runs):
         # Calculate the number of points to sample based on the percentage
         num_points = points.shape[0]
-        print(f'Total number of points: {num_points}')
+        # print(f'Total number of points: {num_points}')
         point_samples = int(num_points * (decimation_percentage / 100.0))
-        print(f'Point samples: {point_samples}')
+        # print(f'Point samples: {point_samples}')
 
         # Randomly sample the points
         indices = np.random.choice(num_points, point_samples, replace=False)
-        decimated_points = points[indices]
+        decimated_points = las.points[indices]
 
         header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
         header.offsets = las.header.offsets
@@ -497,7 +509,13 @@ def augmentation(config):
                     normalize_xy(las_file=os.path.join(folder, las_file))
 
                 if 'decimate' in augmentation_process:
+                    # print(f'Decimating by {config.decimation_percentage}%')
                     decimate(config, las_file=os.path.join(folder, las_file))
+
+    # Re-list because of name change from previous step
+     for folder in all_folders:
+        for las_file in os.listdir(folder):
+            if las_file.endswith('.laz'):
 
                 if 'z_noise' in augmentation_process:
                     pass
@@ -508,11 +526,12 @@ def augmentation(config):
                 if 'rotate_las' in augmentation_process:
                     rotate_las(las_file=os.path.join(folder, las_file), rotations=rotations)
 
-
-     for folder in all_folders:
-        for las_file in os.listdir(folder):
-            if las_file.endswith('.laz'):
-                calculate_normals(config, os.path.join(folder, las_file))
+     if 'calculate_normals' in augmentation_process:
+         print(f'Calculating normals using {config.normals_method}')
+         for folder in all_folders:
+            for las_file in os.listdir(folder):
+                if las_file.endswith('.laz'):
+                    calculate_normals(config, os.path.join(folder, las_file))
 
 
 # In[99]:
@@ -703,6 +722,10 @@ def run_training(config, args=None):
         if 'decimate' in config.augmentation_process:
             f.write(f'Decimation runs: {config.decimation_runs}\n')
             f.write(f'Decimation percentage: {config.decimation_percentage}\n')
+        if 'calculate_normals' in config.normals_method:
+            f.write(f'Normals method: {config.normals_method}\n')
+            if config.normals_method == 'knn':
+                f.write(f'KNN: {config.knn}\n')
         f.write('\n')
 
         # k-fold
@@ -712,7 +735,7 @@ def run_training(config, args=None):
         f.write(f'Class weights: {config.class_weights}\n')
 
         #KPConv values
-        f.write('KPConv Parameters:\n')
+        f.write('\nKPConv Parameters:\n')
         f.write('-----------------------\n')
         f.write(f'Architecture: {architecture}\n')
         f.write(f'max_epoch: {max_epochs}\n')
@@ -915,15 +938,12 @@ def runpipeline(config):
 
 def main():
 
-    first_kpconv_subsampling_dl =0.5
-
     config = PipelineConfig(
-    # Running each
+    # KPConv parameters
     max_epochs = 50,
-    architecture = 'deformable', # 'rigid' or 'deformable'
-    first_kpconv_subsampling_dl = first_kpconv_subsampling_dl,
-    num_kernel_points = 19,
-    augmentation_process = ['normalize_xy', 'rotate_las'],
+    architecture = 'deformable', # 'rigid', 'deformable'
+    first_kpconv_subsampling_dl = 0.25,
+    num_kernel_points = 15,
 
     # Used in copying folder to calculate class weights
     labels_to_names={
@@ -937,30 +957,31 @@ def main():
     },
         
     # Set augmentation parameters
+    augmentation_process = ['decimate', 'calculate_normals', 'normalize_xy', 'rotate_las'],
     decimation_runs = 2,
-    decimation_percentage=90,
+    decimation_percentage=80,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
     max_point_threshold = 2300,
     features = [],
     input_folder='/media/davidhersh/T7 Shield/ALS_data',
-    copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan17_v2',
-    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan17_v2',
-    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan17_v2',
+    copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan31',
+    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan31',
+    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan31',
     # k-fold
     n_splits = 3,
     # Augmentation values
     min_subsample_distance = 0.00001,
-    rotations = 4,
-    normals_search_radius = 2
+    rotations = 1,
+    normals_search_radius = 0.5,
+    normals_method = 'radius',
+    knn = 30
     )
 
     runpipeline(config)
 
 if __name__ == '__main__':
     main()
-# In[ ]:
-
 
 
 
