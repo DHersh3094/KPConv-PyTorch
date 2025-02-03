@@ -293,7 +293,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                     points, normals = grid_subsampling(data[:, :3],
                                                        features=data[:, 3:],
                                                        sampleDl=self.config.first_subsampling_dl)
-                    print(f'Shape of input features from grid_subsample: {normals.shape}')
+                    # print(f'Shape of input features from grid_subsample: {normals.shape}')
                 else:
                     # print(f'Loading PCs not subsampled')
                     # print(f'Data shape: {data.shape}')
