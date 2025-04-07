@@ -107,7 +107,7 @@ class NeuesPalaisTreesConfig(Config):
     # Aggregation function of KPConv in ('closest', 'sum')
     aggregation_mode = 'sum'
 
-    # Choice of input features
+    # Choice of input features. 2 for intensity
     in_features_dim = 1
 
     # Can the network learn modulations
@@ -179,6 +179,8 @@ class NeuesPalaisTreesConfig(Config):
 
 if __name__ == '__main__':
     import argparse
+    import os
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
     parser = argparse.ArgumentParser()
 
