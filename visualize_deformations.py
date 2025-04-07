@@ -139,6 +139,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--path', type=str, help='Path to data (eg. data_2')
     parser.add_argument('--chosen_log', type=str, help='To results.../data_2')
+    parser.add_argument('--deform_idx', type=int, default=0, help='index of the deform convolution in the network')
     args = parser.parse_args()
 
     ###############################
@@ -157,7 +158,7 @@ if __name__ == '__main__':
     chkp_idx = None
 
     # Eventually you can choose which feature is visualized (index of the deform convolution in the network)
-    deform_idx = 0
+    deform_idx = args.deform_idx
 
     # Deal with 'last_XXX' choices
     chosen_log = model_choice(chosen_log)
