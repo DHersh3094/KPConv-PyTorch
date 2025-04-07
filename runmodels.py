@@ -101,13 +101,14 @@ class PipelineConfig:
 
         self.timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M")
         self.saving_path = os.path.join(saving_path, f'results_minsubsample_{first_kpconv_subsampling_dl}_{architecture}_kp_{num_kernel_points}_{datetime.now().strftime("%Y_%m_%d_%H_%M")}')
+        # self.saving_path = '/home/davidhersh/Dropbox/Uni/ThesisHersh/ResultsFeb/results_minsubsample_0.25_deformable_kp_15_2025_01_31_15_21'
         os.makedirs(self.saving_path, exist_ok=True)
 
 
 # In[88]:
 
 
-def copy_folder(config):
+def copy_folder(config, sample=True):
     input_folder = config.input_folder
     copied_folder = config.copied_folder
     figure_save_dir = config.dataset_dir
@@ -115,8 +116,11 @@ def copy_folder(config):
     max_point_threshold = config.max_point_threshold
     plot = True
     redo = True
+
+    # sample = getattr(config, "sample", False)
+
     """
-    Copy single tree ALS files (ending with _g meaning ground classified) for a specific list of trees if they have a minimum point count
+    Copy single tree ALS files (ending with _g meaning ground classified) for a specific list of trees if they have a minimum point count.
     """
     if not os.path.exists(figure_save_dir):
         os.makedirs(figure_save_dir)
@@ -145,21 +149,26 @@ def copy_folder(config):
 
                     # Study area BR06 has an issue with ground. Do not copy for further processing
                     # File format: FagSyl_BR02_04_2019-07-05_q2_ALS-on_g.laz
-                    study_area = filename.split('_')[1]  # BR02
+                    study_area = filename.split('_')[1]  # e.g. BR02
 
                     if filename.endswith('ALS-on_g.laz') and species_name in species_to_copy and study_area != "BR06":
+                        # Limit if sampling
+                        if sample and species_counter[species_name] >= 20:
+                            continue
+
                         las = lp.read(os.path.join(root, filename))
                         number_of_nonground_points = len(las.points[las.classification != 2])
                         if number_of_nonground_points >= min_point_threshold and number_of_nonground_points <= max_point_threshold:
-
                             try:
                                 species_counter[species_name] += 1
                                 files.append(os.path.join(root, filename))  # Store full file paths
                                 shutil.copyfile(os.path.join(root, filename), os.path.join(copied_folder, filename))
-                            except:
-                                print(f'Error copying.')
-                except:
+                            except Exception as e:
+                                print(f'Error copying {filename}: {e}')
+                except Exception as e:
+                    print(f"Error processing file {filename}: {e}")
                     pass
+
         print(f'Copying {len(files)} files')
         print(f'Unique species: {species_counter}')
 
@@ -194,8 +203,7 @@ def copy_folder(config):
         return copied_folder
 
     else:
-        print(f'Skipping copying...')
-
+        print('Skipping copying...')
 
 # In[90]:
 
@@ -274,6 +282,12 @@ def calculate_normals(config, las_file):
 def normalize_intensity(config, las_file):
     if 'intensity' in config.features:
         las = lp.read(las_file)
+
+        # Skip if 'NormalizedIntensity' already exists
+        if "NormalizedIntensity" in las.point_format.extra_dimension_names:
+            print(f"'NormalizedIntensity' already exists in {las_file}, skipping.")
+            return
+
         intensities = las.intensity.astype(np.float64)
 
         scalar = MinMaxScaler(feature_range=(0,1))
@@ -384,8 +398,9 @@ def decimate(config, las_file):
         decimated_las.points = decimated_points
 
         for dim_name in las.point_format.dimension_names:
-            if dim_name not in ["X", "Y", "Z"]:
-                setattr(decimated_las, dim_name, getattr(las, dim_name))
+            original_array = getattr(las, dim_name)
+            decimated_array = original_array[indices]
+            setattr(decimated_las, dim_name, decimated_array)
 
         output_file = las_file.replace('.laz', f'_decim_{i}.laz')
 
@@ -551,12 +566,18 @@ def convert_to_txt(config):
             output_file = las_file.replace('.laz', '.txt')
             
             with open(os.path.join(folder, output_file), 'w') as f:
-                if 'intensity' in config.features:
-                    for x, y, z, nx, ny, nz, intensity in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz, las.NormalizedIntensity):
+                if 'intensity' in config.features and 'calculate_normals' in config.augmentation_process:
+                    for x, y, z, nx, ny, nz, intensity in zip(las.x, las.y, las.z, las.NormalizedIntensity):
                         f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}, {intensity}\n')
-                else:
+                elif 'intensity' in config.features:
+                    for x, y, z, intensity in zip(las.x, las.y, las.z, las.NormalizedIntensity):
+                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {1}, {1}, {1}, {intensity}\n')
+                elif 'calculate_normals' in config.augmentation_process:
                     for x, y, z, nx, ny, nz in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz):
                         f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}\n')
+                else:
+                    for x, y, z in zip(las.x, las.y, las.z):
+                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {1}, {1}, {1}\n') # Filler normals
 
 
 # In[100]:
@@ -799,9 +820,6 @@ def run_training(config, args=None):
             process2.wait()
             logfile.write(f"Completed testing for {kfold_folder_name}\n")
 
-# In[104]:
-
-
 def plot_train_and_val_accuracy_for_all_folds(config, num_classes=None):
     num_classes = len(config.label_mapper)
     saving_path = config.saving_path
@@ -811,7 +829,7 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=None):
     print(f'Plotting for folders: {folders}')
 
     fold=0
-    alpha = .2
+    alpha = .1
     fig, ax = plt.subplots(figsize=(14, 8))
     for folder in folders:
         training_file = os.path.join(folder, 'training.txt')
@@ -831,7 +849,7 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=None):
         ax.plot(df['epochs'], val_accuracies, label=f'Val: {fold+1}', color='b', linestyle='--', alpha=alpha)
 
         fold += 1
-        alpha +=.2
+        alpha +=.08
 
 
     plt.legend(title='Metric and fold')
@@ -912,23 +930,23 @@ def plot_test_results(config):
 
 def runpipeline(config):
 
-    print(f'Copying to {config.copied_folder}')
-    copied_als_folder = copy_folder(config)
+    # print(f'Copying to {config.copied_folder}')
+    # copied_als_folder = copy_folder(config)
 
-    print(f'\nConverting HAG to z')
-    convert_hag_to_z(config)
+    # print(f'\nConverting HAG to z')
+    # convert_hag_to_z(config)
 
     print(f'\nSplitting into {config.n_splits} folds')
-    train_folders, test_folders = stratified_k_fold_split(config)
+    # train_folders, test_folders = stratified_k_fold_split(config)
 
     print(f'\nAugmenting')
-    augmentation(config)
+    # augmentation(config)
 
     print(f'\nConverting to txt')
-    convert_to_txt(config)
+    # convert_to_txt(config)
 
     print(f'\nCopying to datasets')
-    copy_to_datasets(config)
+    # copy_to_datasets(config)
 
     print(f'\nRunning training')
     run_training(config)
@@ -942,7 +960,7 @@ def main():
     # KPConv parameters
     max_epochs = 50,
     architecture = 'deformable', # 'rigid', 'deformable'
-    first_kpconv_subsampling_dl = 0.25,
+    first_kpconv_subsampling_dl = 0.1,
     num_kernel_points = 15,
 
     # Used in copying folder to calculate class weights
@@ -957,22 +975,22 @@ def main():
     },
         
     # Set augmentation parameters
-    augmentation_process = ['decimate', 'calculate_normals', 'normalize_xy', 'rotate_las'],
+    augmentation_process = ['decimate', 'normalize_xy', 'rotate_las'],
     decimation_runs = 2,
-    decimation_percentage=80,
+    decimation_percentage=90,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
-    max_point_threshold = 2300,
-    features = [],
-    input_folder='/media/davidhersh/T7 Shield/ALS_data',
-    copied_folder = f'/media/davidhersh/T7 Shield/Data/pre-processing/Copied_Jan31',
-    dataset_dir = '/media/davidhersh/T7 Shield/Data/DataJan31',
-    saving_path= '/media/davidhersh/T7 Shield/Data/DataJan31',
+    max_point_threshold = 500000,
+    features = ['intensity'],
+    input_folder='/media/davidhersh/T7/ALS_data',
+    copied_folder = f'/media/davidhersh/T7/Data/pre-processing/CopiedApr3_v2',
+    dataset_dir = '/media/davidhersh/T7/Data/DataApr3_v2',
+    saving_path= '/media/davidhersh/T7/Data/DataApr3_v2',
     # k-fold
     n_splits = 3,
     # Augmentation values
     min_subsample_distance = 0.00001,
-    rotations = 1,
+    rotations = 2,
     normals_search_radius = 0.5,
     normals_method = 'radius',
     knn = 30
