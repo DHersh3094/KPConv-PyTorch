@@ -92,6 +92,9 @@ def model_choice(chosen_log):
 
 if __name__ == '__main__':
     import argparse
+    import os
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
     parser = argparse.ArgumentParser()
 
     ###############################
