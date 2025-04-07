@@ -14,6 +14,12 @@
 #      Hugues THOMAS - 06/03/2020
 #
 
+# Usage example:
+# 1. --path is the path to the data
+# 2. --chosen_log is the model folder (goings to /checkpoints)
+# python visualize_deformations.py \
+# --path /media/davidhersh/T7/Data/DataApr3_v2/data_2 \
+# --chosen_log /media/davidhersh/T7/Data/DataApr3_v2/results_minsubsample_0.25_deformable_kp_15_2025_04_05_10_22/data_2
 
 # ----------------------------------------------------------------------------------------------------------------------
 #
@@ -27,6 +33,7 @@ import os
 import numpy as np
 import sys
 import torch
+import argparse
 
 # Dataset
 from datasets.ModelNet40 import *
@@ -128,6 +135,12 @@ def print_layer_point_counts(loader):
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--path', type=str, help='Path to data (eg. data_2')
+    parser.add_argument('--chosen_log', type=str, help='To results.../data_2')
+    args = parser.parse_args()
+
     ###############################
     # Choose the model to visualize
     ###############################
@@ -137,8 +150,9 @@ if __name__ == '__main__':
     #       > 'last_XXX': Automatically retrieve the last trained model on dataset XXX
     #       > 'results/Log_YYYY-MM-DD_HH-MM-SS': Directly provide the path of a trained model
 
-    chosen_log = '/media/davidhersh/T7 Shield/DataJan5/results_minsubsample_0.4/data_2_subsample_0.4'
-
+    # chosen_log = '/media/davidhersh/T7 Shield/DataJan5/results_minsubsample_0.4/data_2_subsample_0.4'
+    # chosen_log = '/media/davidhersh/T7\ Shield/JanuaryResults/Jan17/results_minsubsample_0.2_deformable_kp_15_drad_3.0_2025_01_20_13_26/data_1'
+    chosen_log = args.chosen_log
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
 
@@ -175,7 +189,7 @@ if __name__ == '__main__':
 
     # Initialize configuration class
     config = Config()
-    config.path = '/media/davidhersh/T7 Shield/DataJan5/data_2_subsample_0.4'
+    config.path = '/media/davidhersh/T7/Data/DataApr3_v2/data_2'
     config.load(chosen_log)
 
     ##################################
