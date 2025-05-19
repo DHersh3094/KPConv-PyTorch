@@ -31,6 +31,9 @@ from tqdm import tqdm
 import re
 import tempfile
 
+from data_processing.data_preparation import copy_folder
+from augmentation.augmentation import calculate_hag, rotate_las, normalize_xy, poisson_subsample
+
 class PipelineConfig:
     def __init__(self, input_folder,
                  copied_folder,
@@ -104,140 +107,6 @@ class PipelineConfig:
         # self.saving_path = '/home/davidhersh/Dropbox/Uni/ThesisHersh/ResultsFeb/results_minsubsample_0.25_deformable_kp_15_2025_01_31_15_21'
         os.makedirs(self.saving_path, exist_ok=True)
 
-
-# In[88]:
-
-
-def copy_folder(config, sample=True):
-    input_folder = config.input_folder
-    copied_folder = config.copied_folder
-    figure_save_dir = config.dataset_dir
-    min_point_threshold = config.min_point_threshold
-    max_point_threshold = config.max_point_threshold
-    plot = True
-    redo = True
-
-    # sample = getattr(config, "sample", False)
-
-    """
-    Copy single tree ALS files (ending with _g meaning ground classified) for a specific list of trees if they have a minimum point count.
-    """
-    if not os.path.exists(figure_save_dir):
-        os.makedirs(figure_save_dir)
-
-    if not os.path.exists(config.dataset_dir):
-        os.mkdir(config.dataset_dir)
-
-    if redo:
-
-        try:
-            if not os.path.exists(copied_folder):
-                os.makedirs(copied_folder)
-        except OSError:
-            print(f'Unable to make folder')
-
-        # Only copy certain species
-        species_to_copy = list(config.labels_to_names.values())
-
-        files = []
-        species_counter = Counter()
-
-        for root, dirs, filenames in os.walk(input_folder):
-            for filename in filenames:
-                try:
-                    species_name = filename.split('_')[0]
-
-                    # Study area BR06 has an issue with ground. Do not copy for further processing
-                    # File format: FagSyl_BR02_04_2019-07-05_q2_ALS-on_g.laz
-                    study_area = filename.split('_')[1]  # e.g. BR02
-
-                    if filename.endswith('ALS-on_g.laz') and species_name in species_to_copy and study_area != "BR06":
-                        # Limit if sampling
-                        if sample and species_counter[species_name] >= 20:
-                            continue
-
-                        las = lp.read(os.path.join(root, filename))
-                        number_of_nonground_points = len(las.points[las.classification != 2])
-                        if number_of_nonground_points >= min_point_threshold and number_of_nonground_points <= max_point_threshold:
-                            try:
-                                species_counter[species_name] += 1
-                                files.append(os.path.join(root, filename))  # Store full file paths
-                                shutil.copyfile(os.path.join(root, filename), os.path.join(copied_folder, filename))
-                            except Exception as e:
-                                print(f'Error copying {filename}: {e}')
-                except Exception as e:
-                    print(f"Error processing file {filename}: {e}")
-                    pass
-
-        print(f'Copying {len(files)} files')
-        print(f'Unique species: {species_counter}')
-
-        # Calculate classes
-        classes = sorted(list(species_counter.keys()))
-        y = []
-        for cls, count in species_counter.items():
-            y.extend([cls] * count)
-        y = np.array(y)
-        class_weights = compute_class_weight('balanced',
-                                             classes=np.array(classes),
-                                             y=y)
-        class_weights = list(class_weights)
-        config.class_weights = class_weights
-        print(f'Classes: {classes}')
-        print(f'Class weights: {class_weights}')
-
-        # Save class weights to .txt file to be loaded during training because copying folder and augmentation only needs to occur once in some cases
-        class_weights_file = os.path.join(config.dataset_dir, 'class_weights.npy')
-        np.save(class_weights_file, np.array(class_weights))
-
-        if plot:
-            fig, ax = plt.subplots(figsize=(12, 8))
-            plt.bar(species_counter.keys(), species_counter.values())
-            plt.ylabel('Number of trees')
-            plt.xlabel('Species')
-            plt.grid()
-            plt.title(f"Number of trees with more than {min_point_threshold} non-ground points")
-            plt.savefig(os.path.join(figure_save_dir, f'species_count_greaterthan_{min_point_threshold}_points.png'),
-                        bbox_inches='tight')
-
-        return copied_folder
-
-    else:
-        print('Skipping copying...')
-
-# In[90]:
-
-
-def calculate_hag(las_file):
-    las = lp.read(las_file)
-    x = las.x
-    y = las.y
-    z = las.z
-    
-    classification = las.classification
-    
-    ground_indices = classification == 2
-    x_ground = x[ground_indices]
-    y_ground = y[ground_indices]
-    z_ground = z[ground_indices]
-    
-    X, Y = np.meshgrid(x_ground, y_ground)
-    ground_interpolated = LinearNDInterpolator(list(zip(x_ground, y_ground)), z_ground)
-    Z = ground_interpolated(X, Y)
-    z_ground_at_points = ground_interpolated(x, y)
-    min_ground = np.nanmin(z_ground)
-    z_ground_at_points = np.where(np.isnan(z_ground_at_points), min_ground, z_ground_at_points)
-    hag = z - z_ground_at_points
-    las.z = hag
-    las = las[las.classification != 2]
-    
-    las.write(las_file)
-
-
-# In[91]:
-
-
-# Can do HAG calculation before split
 
 def convert_hag_to_z(config, redo=True):
     input_folder = config.copied_folder # Run on copied files
@@ -341,37 +210,6 @@ def stratified_k_fold_split(config):
     return train_folders, test_folders
 
 
-# In[94]:
-
-
-def poisson_subsample(config, las_file):
-    min_distance = config.min_subsample_distance
-    las = lp.read(las_file)
-    points = np.vstack((las.x, las.y, las.z)).transpose()
-
-    kdtree = cKDTree(points)
-
-    selected = np.zeros(len(points), dtype=bool)
-    selected_indices = []
-    for i, point in enumerate(points):
-        if selected[i]:
-            continue
-
-        selected_indices.append(i)
-        selected[i] = True
-
-        indices = kdtree.query_ball_point(point, min_distance)
-        selected[indices] = True
-
-    header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-    header.offsets = las.header.offsets
-    header.scales = las.header.scales
-
-    subsampled_las = lp.LasData(header)
-    subsampled_las.points = las.points[selected_indices]
-
-    subsampled_las.write(las_file)
-
 def decimate(config, las_file):
     decimation_percentage = config.decimation_percentage
     decimation_runs = config.decimation_runs
@@ -407,98 +245,6 @@ def decimate(config, las_file):
         las.write(output_file)
 
     os.remove(las_file)
-
-
-# In[95]:
-
-
-def normalize_xy(las_file):
-        las = lp.read(las_file)
-        original_offset_x = las.header.offsets[0]
-        original_offset_y = las.header.offsets[1]
-        scale_x = las.header.scales[0]
-        scale_y = las.header.scales[1]
-
-        x = las.x
-        y = las.y
-
-        mean_x = np.mean(x)
-        mean_y = np.mean(y)
-        
-        # Normalize coordinates
-        normalized_x = x - mean_x
-        normalized_y = y - mean_y
-
-        new_header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-        new_header.scales = las.header.scales
-
-        new_header.offsets = [
-            original_offset_x - mean_x,
-            original_offset_y - mean_y,
-            las.header.offsets[2]  # Same z
-        ]
-
-        new_las = lp.LasData(new_header)
-        new_las.x = normalized_x
-        new_las.y = normalized_y
-        new_las.z = las.z
-
-        for dim_name in las.point_format.dimension_names:
-            if dim_name not in ["X", "Y", "Z"]:
-                setattr(new_las, dim_name, getattr(las, dim_name))
-
-        new_las.write(las_file)
-
-
-# In[96]:
-
-
-def rotate_z(pointcloud, degrees):
-    theta = np.deg2rad(degrees)
-
-    rotation_matrix = np.array([
-        [np.cos(theta), -np.sin(theta), 0],
-        [np.sin(theta), np.cos(theta), 0],
-        [0, 0, 1]
-    ])
-
-    return np.dot(pointcloud, rotation_matrix.T)
-
-
-def rotate_las(las_file, rotations):
-        las = lp.read(las_file)
-
-        point_data = np.vstack((las.x, las.y, las.z)).T
-
-        quadrant_ranges = []
-        step = 360 // rotations
-        for i in range(rotations):
-            quadrant_ranges.append((i * step, (i + 1) * step))
-
-        random_rotations = [np.random.uniform(low, high) for low, high in quadrant_ranges]
-
-        for i, rotation in enumerate(random_rotations):
-
-            rotated_points = rotate_z(point_data, rotation)
-
-            header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-            header.offsets = las.header.offsets
-            header.scales = las.header.scales
-
-            rotated_las = lp.LasData(header)
-            rotated_las.x = rotated_points[:, 0]
-            rotated_las.y = rotated_points[:, 1]
-            rotated_las.z = rotated_points[:, 2]
-
-            for dim_name in las.point_format.dimension_names:
-                if dim_name not in ["X", "Y", "Z"]:
-                    setattr(rotated_las, dim_name, getattr(las, dim_name))
-
-            base_folder = os.path.dirname(las_file)
-            base_name = os.path.basename(las_file).replace('.laz', f'_rot_{int(rotation)}.laz')
-            output_file = os.path.join(base_folder, base_name)
-
-            rotated_las.write(output_file)
 
 def z_noise(config, las_file):
     return
@@ -931,22 +677,22 @@ def plot_test_results(config):
 def runpipeline(config):
 
     # print(f'Copying to {config.copied_folder}')
-    # copied_als_folder = copy_folder(config)
+    copied_als_folder = copy_folder(config)
 
     # print(f'\nConverting HAG to z')
-    # convert_hag_to_z(config)
+    convert_hag_to_z(config)
 
     print(f'\nSplitting into {config.n_splits} folds')
-    # train_folders, test_folders = stratified_k_fold_split(config)
+    train_folders, test_folders = stratified_k_fold_split(config)
 
     print(f'\nAugmenting')
-    # augmentation(config)
+    augmentation(config)
 
     print(f'\nConverting to txt')
-    # convert_to_txt(config)
+    convert_to_txt(config)
 
     print(f'\nCopying to datasets')
-    # copy_to_datasets(config)
+    copy_to_datasets(config)
 
     print(f'\nRunning training')
     run_training(config)
@@ -960,7 +706,7 @@ def main():
     # KPConv parameters
     max_epochs = 50,
     architecture = 'deformable', # 'rigid', 'deformable'
-    first_kpconv_subsampling_dl = 0.1,
+    first_kpconv_subsampling_dl = 0.2,
     num_kernel_points = 15,
 
     # Used in copying folder to calculate class weights
@@ -975,22 +721,22 @@ def main():
     },
         
     # Set augmentation parameters
-    augmentation_process = ['decimate', 'normalize_xy', 'rotate_las'],
+    augmentation_process = ['normalize_xy', 'rotate_las'],
     decimation_runs = 2,
     decimation_percentage=90,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
-    max_point_threshold = 500000,
+    max_point_threshold = 2300,
     features = ['intensity'],
-    input_folder='/media/davidhersh/T7/ALS_data',
-    copied_folder = f'/media/davidhersh/T7/Data/pre-processing/CopiedApr3_v2',
-    dataset_dir = '/media/davidhersh/T7/Data/DataApr3_v2',
-    saving_path= '/media/davidhersh/T7/Data/DataApr3_v2',
+    input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
+    copied_folder = f'/media/davidhersh/T75/Data/DataMay19_Copied',
+    dataset_dir = '/media/davidhersh/T75/Data/DataMay19',
+    saving_path= '/media/davidhersh/T75/Data/DataMay19',
     # k-fold
     n_splits = 3,
     # Augmentation values
     min_subsample_distance = 0.00001,
-    rotations = 2,
+    rotations = 1,
     normals_search_radius = 0.5,
     normals_method = 'radius',
     knn = 30
