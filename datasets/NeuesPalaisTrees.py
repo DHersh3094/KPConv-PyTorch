@@ -47,7 +47,6 @@ from utils.config import bcolors
 #           Dataset class definition
 #       \******************************/
 
-
 class NeuesPalaisTreesDataset(PointCloudDataset):
     """Class to handle Modelnet 40 dataset."""
 
@@ -106,7 +105,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         self.mode = mode
 
         # Do subsample flag
-        self.do_subsample = config.do_subsample
+        self.do_grid_subsample = config.do_grid_subsample
 
         # Number of models and models used per epoch
         if self.mode == 'train':
@@ -244,7 +243,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         else:
             split = 'test'
 
-        if self.do_subsample:
+        if self.do_grid_subsample:
             print('\nLoading {:s} points subsampled at {:.3f}'.format(split, self.config.first_subsampling_dl))
             filename = join(self.path, '{:s}_{:.3f}_record.pkl'.format(split, self.config.first_subsampling_dl))
         else:
@@ -289,7 +288,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 data = np.loadtxt(txt_file, delimiter=',', dtype=np.float32)
 
                 # Subsample them
-                if self.config.first_subsampling_dl > 0 and self.do_subsample:
+                if self.config.first_subsampling_dl > 0 and self.do_grid_subsample:
                     points, normals = grid_subsampling(data[:, :3],
                                                        features=data[:, 3:],
                                                        sampleDl=self.config.first_subsampling_dl)

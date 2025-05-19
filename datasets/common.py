@@ -398,9 +398,17 @@ class PointCloudDataset(Dataset):
 
                 # New subsampling length
                 dl = 2 * r_normal / self.config.conv_radius
+                
 
-                # Subsampled points
-                pool_p, pool_b = batch_grid_subsampling(stacked_points, stack_lengths, sampleDl=dl)
+                # Check if do_grid_subsample is enabled
+                if hasattr(self.config, 'do_grid_subsample') and self.config.do_grid_subsample:
+                    
+                    # Subsampled points
+                    pool_p, pool_b = batch_grid_subsampling(stacked_points, stack_lengths, sampleDl=dl)
+
+                # Skip subsampling
+                else:
+                    pool_p, pool_b = stacked_points.copy(), stack_lengths.copy()
 
                 # Radius of pooled neighbors
                 if 'deformable' in block:

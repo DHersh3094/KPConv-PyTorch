@@ -112,7 +112,7 @@ if __name__ == '__main__':
     # chosen_log = '/media/davidhersh/T7 Shield/results_2024_12_12_17_44/data_1_subsample_0.4'
     parser.add_argument('--results_path', type=str, default=None, help='Results path')
     parser.add_argument('--data_path', type=str, default=None, help='Data path')
-    parser.add_argument('--do_subsample', help='Enable subsampling or not')
+    parser.add_argument('--do_grid_subsample', help='Enable subsampling or not')
     parser.add_argument('--first_subsampling_dl', type=float, default=None, help='The KPConv subsampling value')
     parser.add_argument('--num_test_models', type=int,  help='# of trees')
 
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     #
     # if args.results_path is not None:
-    #     chosen_log = args.results_path
+    #     chosen_log = args.results_path    
 
     # Choose the index of the checkpoint to load OR None if you want to load the current checkpoint
     chkp_idx = None
@@ -164,6 +164,13 @@ if __name__ == '__main__':
 
     if args.data_path is not None:
         config.path = args.data_path
+        
+    # Handle do_grid_subsample
+    if args.do_grid_subsample is not None:
+        config.do_grid_subsample = True if args.do_grid_subsample.lower() == 'true' else False
+    else:
+        # Default disabled
+        config.do_grid_subsample = True
 
     if args.first_subsampling_dl is not None:
         config.first_subsampling_dl = args.first_subsampling_dl

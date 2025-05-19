@@ -90,7 +90,9 @@ class NeuesPalaisTreesConfig(Config):
 
     # Size of the first subsampling grid in meter
     first_subsampling_dl = 0.4
-    do_subsample = True
+    
+    # Boolean flag to toggle the grid subsampling of the input point clouds
+    do_grid_subsample = True
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -184,7 +186,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--do_subsample', help='Enable subsampling or not')
+    parser.add_argument('--do_grid_subsample', help='Enable subsampling of the pointcloud')
     parser.add_argument('--first_subsampling_dl', type=float, default=None, help='The KPConv subsampling value')
     parser.add_argument('--max_epoch', type=int, default=None, help='Override max epoch')
     parser.add_argument('--data_path', type=str, default=None, help='Data path')
