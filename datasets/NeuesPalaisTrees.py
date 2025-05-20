@@ -124,7 +124,6 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         #############
         # Load models
         #############
-
         if 0 < self.config.first_subsampling_dl <= 0.01:
             raise ValueError('subsampling_parameter too low (should be over 1 cm')
 
@@ -455,7 +454,7 @@ class NeuesPalaisTreesSampler(Sampler):
         """
         return None
 
-    def calibration(self, dataloader, untouched_ratio=0.9, verbose=False):
+    def calibration(self, dataloader, untouched_ratio=0.9, verbose=True):
         """
         Method performing batch and neighbors calibration.
             Batch calibration: Set "batch_limit" (the maximum number of points allowed in every batch) so that the
@@ -467,6 +466,12 @@ class NeuesPalaisTreesSampler(Sampler):
         ##############################
         # Previously saved calibration
         ##############################
+        
+        if self.dataset.config.do_grid_subsample == False:
+            print(f'Grid subsample is off')
+            untouched_ratio = 0.0
+            print(f'Untouched ratio: {untouched_ratio}')
+        
 
         print('\nStarting Calibration (use verbose=True for more details)')
         t0 = time.time()
@@ -1010,4 +1015,3 @@ class NeuesPalaisTreesWorkerInitDebug:
         # configure the dataset to only process the split workload
 
         return
-
