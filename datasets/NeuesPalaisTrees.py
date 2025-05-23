@@ -315,10 +315,10 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                     points = data[:, :3]
                     normals = data[:, 3:]
                     
-                # Save percentages
-                percentages_file = join(self.path, f'{self.config.first_subsampling_dl}_first_subsampling_percentages')
-                with open(percentages_file, 'wb') as f:
-                    pickle.dump(subsampling_percentages, f)
+            # Save percentages
+            percentages_file = join(self.path, f'{self.config.first_subsampling_dl}_first_subsampling_percentages')
+            with open(percentages_file, 'wb') as f:
+                pickle.dump(subsampling_percentages, f)
 
                 # print('', end='\r')
                 # print('\r' + fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N) + ' ' * 10, end='', flush=True)
