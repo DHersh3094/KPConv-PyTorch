@@ -586,7 +586,7 @@ def plot_train_and_val_accuracy_for_all_folds(config, num_classes=None):
         validation_file = os.path.join(folder, 'val_confs.txt')
         df = pd.read_csv(training_file, sep='\s+')
         df = df.groupby('epochs').mean().reset_index()
-        ax.plot(df['epochs'], df['train_accuracy'] * 100, 'k', label=f'Train: {fold+1}', alpha=alpha)
+        ax.plot(df['epochs'].to_numpy(), df['train_accuracy'].to_numpy() * 100, 'k', label=f'Train: {fold+1}', alpha=alpha)
 
         # Val plot
         with open(validation_file, 'r') as f:
