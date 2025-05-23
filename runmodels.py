@@ -471,7 +471,11 @@ def run_training(config, args=None):
     if config.class_weights is None:
         print(f'No class weights in config, loading from .npy...')
         class_weights_file = os.path.join(config.dataset_dir, 'class_weights.npy')
-        config.class_weights = np.load(class_weights_file, allow_pickle=True).tolist()
+        if not os.path.exists(class_weights_file):
+            print(f'No class weights. Using balanced')
+            config.class_weights = [1,1,1,1,1,1]
+        else:
+            config.class_weights = np.load(class_weights_file, allow_pickle=True).tolist()
 
 
     # Save all parameters in results
@@ -721,12 +725,12 @@ def main():
     },
         
     # Set augmentation parameters
-    augmentation_process = ['normalize_xy', 'rotate_las'],
+    augmentation_process = ['normalize_xy'],
     decimation_runs = 2,
     decimation_percentage=90,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
-    max_point_threshold = 2300,
+    max_point_threshold = 2400,
     features = ['intensity'],
     input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
     copied_folder = f'/media/davidhersh/T75/Data/DataMay19_Copied',
