@@ -93,6 +93,8 @@ class NeuesPalaisTreesConfig(Config):
     
     # Boolean flag to toggle the grid subsampling of the input point clouds
     do_grid_subsample = False
+    # Option to skip the first grid subsample
+    do_first_grid_subsample = True
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5

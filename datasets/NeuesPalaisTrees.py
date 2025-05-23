@@ -294,13 +294,13 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 original_count = data.shape[0]
 
                 # Subsample them
-                if self.config.first_subsampling_dl > 0 and self.do_grid_subsample:
+                if self.config.first_subsampling_dl > 0 and self.do_grid_subsample and self.do_first_grid_subsample:
                     points, normals = grid_subsampling(data[:, :3],
                                                        features=data[:, 3:],
                                                        sampleDl=self.config.first_subsampling_dl)
                     
                     subsampled_count = points.shape[0]
-                    percent_of_original = subsampled_count / original_count * 100
+                    percent_of_original = np.round((subsampled_count / original_count * 100), 2)
                     
                     subsampling_percentages.append({
                         'cloud_name' : cloud_name,
@@ -326,7 +326,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 
             # Save percentages
             df = pd.DataFrame(subsampling_percentages)
-            percentages_file = join(self.path, f'{self.config.first_subsampling_dl}.csv')
+            percentages_file = join(self.path, f'first_grid_subsample_percentages_{self.config.first_subsampling_dl}.csv')
             df.to_csv(percentages_file, index=False)
 
             # print('', end='\r')
