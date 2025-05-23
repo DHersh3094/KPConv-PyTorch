@@ -28,6 +28,7 @@ import numpy as np
 import pickle
 import torch
 import math
+import pandas as pd
 
 
 # OS functions
@@ -324,9 +325,9 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 input_normals += [normals]
                 
             # Save percentages
-            percentages_file = join(self.path, f'{self.config.first_subsampling_dl}_first_subsampling_percentages')
-            with open(percentages_file, 'wb') as f:
-                pickle.dump(subsampling_percentages, f)
+            df = pd.DataFrame(subsampling_percentages)
+            percentages_file = join(self.path, f'{self.config.first_subsampling_dl}.csv')
+            df.to_csv(percentages_file, index=False)
 
             # print('', end='\r')
             # print(fmt_str.format('#' * progress_n, 100), end='', flush=True)
