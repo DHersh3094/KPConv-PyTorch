@@ -275,6 +275,9 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
             N = len(names)
             progress_n = 30
             fmt_str = '[{:<' + str(progress_n) + '}] {:5.1f}%'
+            
+            # Save first subsampling percentages
+            subsampling_percentages = []
 
             # Collect point clouds
             for i, cloud_name in enumerate(names):
@@ -286,17 +289,36 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 txt_file = join(self.path, class_folder, cloud_name) + '.txt'
                 data = np.loadtxt(txt_file, delimiter=',', dtype=np.float32)
 
+                # Non-subsampled point count
+                original_count = data.shape[0]
+
                 # Subsample them
                 if self.config.first_subsampling_dl > 0 and self.do_grid_subsample:
                     points, normals = grid_subsampling(data[:, :3],
                                                        features=data[:, 3:],
                                                        sampleDl=self.config.first_subsampling_dl)
+                    
+                    subsampled_count = points.shape[0]
+                    percent_of_original = subsampled_count / original_count * 100
+                    
+                    subsampling_percentages.append({
+                        'cloud_name' : cloud_name,
+                        'original_count': original_count,
+                        'subsampled_count': subsampled_count,
+                        'percentage': percent_of_original
+                    })
+                    
                     # print(f'Shape of input features from grid_subsample: {normals.shape}')
                 else:
                     # print(f'Loading PCs not subsampled')
                     # print(f'Data shape: {data.shape}')
                     points = data[:, :3]
                     normals = data[:, 3:]
+                    
+                # Save percentages
+                percentages_file = join(self.path, f'{self.config.first_subsampling_dl}_first_subsampling_percentages')
+                with open(percentages_file, 'wb') as f:
+                    pickle.dump(subsampling_percentages, f)
 
                 # print('', end='\r')
                 # print('\r' + fmt_str.format('#' * ((i * progress_n) // N), 100 * i / N) + ' ' * 10, end='', flush=True)
