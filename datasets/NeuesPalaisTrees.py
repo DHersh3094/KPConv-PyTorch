@@ -324,9 +324,9 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 input_points += [points]
                 input_normals += [normals]
                 
-            # Save percentages
+            # Save percentages for train.txt and test with "mode"
             df = pd.DataFrame(subsampling_percentages)
-            percentages_file = join(self.path, f'first_grid_subsample_percentages_{self.config.first_subsampling_dl}.csv')
+            percentages_file = join(self.path, f'first_grid_subsample_percentages_{self.config.first_subsampling_dl}_mode={self.mode}.csv')
             df.to_csv(percentages_file, index=False)
 
             # print('', end='\r')
