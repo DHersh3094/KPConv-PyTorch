@@ -169,3 +169,39 @@ def poisson_subsample(config, las_file):
     subsampled_las.points = las.points[selected_indices]
 
     subsampled_las.write(las_file)
+    
+def decimate(config, las_file):
+    decimation_percentage = config.decimation_percentage
+    decimation_runs = config.decimation_runs
+
+    las = lp.read(las_file)
+    points = np.vstack((las.x, las.y, las.z)).transpose()
+
+    for i in range(decimation_runs):
+        # Calculate the number of points to sample based on the percentage
+        num_points = points.shape[0]
+        # print(f'Total number of points: {num_points}')
+        point_samples = int(num_points * (decimation_percentage / 100.0))
+        # print(f'Point samples: {point_samples}')
+
+        # Randomly sample the points
+        indices = np.random.choice(num_points, point_samples, replace=False)
+        decimated_points = las.points[indices]
+
+        header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
+        header.offsets = las.header.offsets
+        header.scales = las.header.scales
+
+        decimated_las = lp.LasData(header)
+        decimated_las.points = decimated_points
+
+        for dim_name in las.point_format.dimension_names:
+            original_array = getattr(las, dim_name)
+            decimated_array = original_array[indices]
+            setattr(decimated_las, dim_name, decimated_array)
+
+        output_file = las_file.replace('.laz', f'_decim_{i}.laz')
+
+        decimated_las.write(output_file)
+
+    os.remove(las_file)
