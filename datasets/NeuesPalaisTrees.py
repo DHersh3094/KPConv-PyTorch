@@ -43,6 +43,8 @@ from utils.mayavi_visu import *
 from datasets.common import grid_subsampling
 from utils.config import bcolors
 
+import laspy as lp
+
 # ----------------------------------------------------------------------------------------------------------------------
 #
 #           Dataset class definition
@@ -287,8 +289,16 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 # class_folder = '_'.join(cloud_name.split('_')[:-1])
                 class_folder = cloud_name.split('_')[0]
                 # print(f'Class folder: {class_folder}\n')
-                txt_file = join(self.path, class_folder, cloud_name) + '.txt'
-                data = np.loadtxt(txt_file, delimiter=',', dtype=np.float32)
+                # txt_file = join(self.path, class_folder, cloud_name) + '.txt'
+                # data = np.loadtxt(txt_file, delimiter=',', dtype=np.float32)
+                las_file = join(self.path, class_folder, cloud_name) + '.laz'
+                las = lp.read(las_file)
+                data_xyz = (np.vstack((las.x, las.y, las.z)).T).astype(np.float32)
+                
+                extra_dims = [dim for dim in las.point_format.dimensions if dim.name not in ('X', 'Y', 'Z')]
+                data_features = np.vstack([las[dim.name] for dim in extra_dims]).T.astype(np.float32)
+                
+                data = np.hstack((data_xyz, data_features))
 
                 # Non-subsampled point count
                 original_count = data.shape[0]

@@ -374,7 +374,7 @@ def copy_to_datasets(config):
         train_folder = re.sub(r"fold_\d+_train", f'fold_{i}_train', base_folder)
         with open (train_txt_file, 'w') as f:
             for file in os.listdir(train_folder):
-                if file.endswith('.txt'):
+                if file.endswith('.laz'):
                     f.write(file[:-4] + '\n')
                 else:
                     pass
@@ -382,7 +382,7 @@ def copy_to_datasets(config):
         
         for file in os.listdir(train_folder):
             species = file.split('_')[0]
-            if file.endswith('.txt'):
+            if file.endswith('.laz'):
                 shutil.copy(os.path.join(train_folder, file), species_dirs[species])
             else:
                 pass
@@ -392,14 +392,14 @@ def copy_to_datasets(config):
         test_files = [file for file in os.listdir(test_folder) if file.endswith('.txt')]
         with open(test_txt_file, 'w') as f:
             for file in os.listdir(test_folder):
-                if file.endswith('.txt'):
+                if file.endswith('.laz'):
                     f.write(file[:-4] + '\n')
                 else:
                     pass
                 
         for file in os.listdir(test_folder):
             species = file.split('_')[0]
-            if file.endswith('.txt'):
+            if file.endswith('.laz'):
                 shutil.copy(os.path.join(test_folder, file), species_dirs[species])
             else:
                 pass
@@ -692,8 +692,8 @@ def runpipeline(config):
     print(f'\nAugmenting')
     augmentation(config)
 
-    print(f'\nConverting to txt')
-    convert_to_txt(config)
+    # print(f'\nConverting to txt')
+    # convert_to_txt(config)
 
     print(f'\nCopying to datasets')
     copy_to_datasets(config)
@@ -730,12 +730,12 @@ def main():
     decimation_percentage=90,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
-    max_point_threshold = 2400,
+    max_point_threshold = 2100,
     features = ['intensity'],
     input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
-    copied_folder = f'/media/davidhersh/T75/Data/DataMay19_Copied',
-    dataset_dir = '/media/davidhersh/T75/Data/DataMay19',
-    saving_path= '/media/davidhersh/T75/Data/DataMay19',
+    copied_folder = f'/media/davidhersh/T76/Data/DataJun11_Copied',
+    dataset_dir = '/media/davidhersh/T76/Data/DataJun11',
+    saving_path= '/media/davidhersh/T76/Data/DataJun11',
     # k-fold
     n_splits = 3,
     # Augmentation values
