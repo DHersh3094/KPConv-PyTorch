@@ -100,6 +100,8 @@ def rotate_las(las_file, rotations):
             output_file = os.path.join(base_folder, base_name)
 
             rotated_las.write(output_file)
+            
+        os.remove(las_file)
 
 
 def normalize_xy(las_file):
@@ -139,9 +141,6 @@ def normalize_xy(las_file):
 
         new_las.write(las_file)
         
-# In[94]:
-
-
 def poisson_subsample(config, las_file):
     min_distance = config.min_subsample_distance
     las = lp.read(las_file)
@@ -204,4 +203,35 @@ def decimate(config, las_file):
 
         decimated_las.write(output_file)
 
+    os.remove(las_file)
+    
+def jitter(config, las_file):
+    amount = config.jitter_amount
+    las = lp.read(las_file)
+    xyz = np.vstack((las.x, las.y, las.z)).T
+    
+    #Bounds 
+    min_bound = np.min(xyz, axis=0)
+    max_bound = np.max(xyz, axis=0)
+    extent = max_bound - min_bound
+    noise = np.random.rand(*xyz.shape) * extent * amount
+    xyz_noisy = xyz + noise
+    
+    new_header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
+    new_header.scales = las.header.scales
+    new_header.offsets = las.header.offsets
+
+    new_las = lp.LasData(new_header)
+
+    new_las.x = xyz_noisy[:, 0]
+    new_las.y = xyz_noisy[:, 1]
+    new_las.z = xyz_noisy[:, 2]
+
+    for dim_name in las.point_format.dimension_names:
+        if dim_name not in ["X", "Y", "Z"]:
+            setattr(new_las, dim_name, getattr(las, dim_name))
+
+    new_las_name = las_file.replace('.laz', '_j.laz')
+    new_las.write(new_las_name)
+    
     os.remove(las_file)

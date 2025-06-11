@@ -32,7 +32,7 @@ import re
 import tempfile
 
 from data_processing.data_preparation import copy_folder
-from augmentation.augmentation import calculate_hag, rotate_las, normalize_xy, poisson_subsample
+from augmentation.augmentation import calculate_hag, rotate_las, normalize_xy, poisson_subsample, jitter
 
 class PipelineConfig:
     def __init__(self, input_folder,
@@ -55,6 +55,7 @@ class PipelineConfig:
                  augmentation_process,
                  decimation_runs,
                  decimation_percentage,
+                 jitter_amount,
                  num_kernel_points,
                  labels_to_names):
 
@@ -65,6 +66,7 @@ class PipelineConfig:
         self.augmentation_process = augmentation_process
         self.decimation_runs = decimation_runs
         self.decimation_percentage = decimation_percentage
+        self.jitter_amount = jitter_amount
         self.min_point_threshold = min_point_threshold
         self.max_point_threshold = max_point_threshold
         self.n_splits = n_splits
@@ -259,6 +261,14 @@ def augmentation(config):
      min_subsample_distance = config.min_subsample_distance
 
      all_folders = train_folders + test_folders
+     
+     for folder in all_folders:
+        for las_file in os.listdir(folder):
+            if las_file.endswith('.laz'):
+                  
+                if 'jitter' in augmentation_process:
+                    jitter(config, las_file=os.path.join(folder, las_file))
+     
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
@@ -293,40 +303,6 @@ def augmentation(config):
             for las_file in os.listdir(folder):
                 if las_file.endswith('.laz'):
                     calculate_normals(config, os.path.join(folder, las_file))
-
-
-# In[99]:
-
-
-# Need to deal with nan normal values
-def convert_to_txt(config):
-    train_folders = config.train_folders
-    test_folders = config.test_folders
-    all_folders = train_folders + test_folders
-
-    for folder in all_folders:
-        for las_file in os.listdir(folder):
-            if not las_file.endswith(('laz', 'las')):
-                continue
-            las = lp.read(os.path.join(folder, las_file))
-            output_file = las_file.replace('.laz', '.txt')
-            
-            with open(os.path.join(folder, output_file), 'w') as f:
-                if 'intensity' in config.features and 'calculate_normals' in config.augmentation_process:
-                    for x, y, z, nx, ny, nz, intensity in zip(las.x, las.y, las.z, las.NormalizedIntensity):
-                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}, {intensity}\n')
-                elif 'intensity' in config.features:
-                    for x, y, z, intensity in zip(las.x, las.y, las.z, las.NormalizedIntensity):
-                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {1}, {1}, {1}, {intensity}\n')
-                elif 'calculate_normals' in config.augmentation_process:
-                    for x, y, z, nx, ny, nz in zip(las.x, las.y, las.z, las.nx, las.ny, las.nz):
-                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {nx}, {ny}, {nz}\n')
-                else:
-                    for x, y, z in zip(las.x, las.y, las.z):
-                        f.write(f'{x:.6f}, {y:.6f}, {z:.6f}, {1}, {1}, {1}\n') # Filler normals
-
-
-# In[100]:
 
 
 # Convert to KPConv repository dataset format
@@ -692,9 +668,6 @@ def runpipeline(config):
     print(f'\nAugmenting')
     augmentation(config)
 
-    # print(f'\nConverting to txt')
-    # convert_to_txt(config)
-
     print(f'\nCopying to datasets')
     copy_to_datasets(config)
 
@@ -725,17 +698,20 @@ def main():
     },
         
     # Set augmentation parameters
-    augmentation_process = ['normalize_xy'],
+    # Augment:
+    # 'poisson_subsample', 'jitter', 'rotate_las', 'decimate'
+    augmentation_process = ['rotate_las', 'jitter', 'normalize_xy'],
     decimation_runs = 2,
     decimation_percentage=90,
+    jitter_amount= 0.01,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
-    max_point_threshold = 2100,
+    max_point_threshold = 2400,
     features = ['intensity'],
     input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
-    copied_folder = f'/media/davidhersh/T76/Data/DataJun11_Copied',
-    dataset_dir = '/media/davidhersh/T76/Data/DataJun11',
-    saving_path= '/media/davidhersh/T76/Data/DataJun11',
+    copied_folder = f'/media/davidhersh/T76/Data/DataJun11_Copied7',
+    dataset_dir = '/media/davidhersh/T76/Data/DataJun118',
+    saving_path= '/media/davidhersh/T76/Data/DataJun118',
     # k-fold
     n_splits = 3,
     # Augmentation values
