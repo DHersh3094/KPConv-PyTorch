@@ -96,6 +96,7 @@ class Config:
     # Size of the first subsampling grid in meter
     first_subsampling_dl = 0.75
     do_subsample = True
+    do_grid_subsample = True
 
     # Radius of convolution in "number grid cell". (2.5 is the standard value)
     conv_radius = 2.5
@@ -193,6 +194,9 @@ class Config:
     # Do we nee to save convergence
     saving = True
     saving_path = 'train_results'
+    
+    save_subsampled_pointclouds=True
+    save_clouds_path=None
 
     def __init__(self):
         """

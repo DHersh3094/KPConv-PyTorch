@@ -45,6 +45,8 @@ from utils.config import bcolors
 
 import laspy as lp
 
+from datasets.common import save_subsampled_clouds
+
 # ----------------------------------------------------------------------------------------------------------------------
 #
 #           Dataset class definition
@@ -109,6 +111,9 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
 
         # Do subsample flag
         self.do_grid_subsample = config.do_grid_subsample
+        
+        self.save_subsampled_pointclouds = config.save_subsampled_pointclouds
+        self.save_clouds_path = config.save_clouds_path
 
         # Number of models and models used per epoch
         if self.mode == 'train':
@@ -157,12 +162,17 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         s_list = []
         R_list = []
 
+        cloud_names = []
         for p_i in idx_list:
 
             # Get points and labels
             points = self.input_points[p_i].astype(np.float32)
             normals = self.input_normals[p_i].astype(np.float32)
             label = self.label_to_idx[self.input_labels[p_i]]
+            
+            # Save cloud names
+            cloud_name = self.names[p_i]
+            cloud_names.append(cloud_name)
 
             # Data augmentation
             # points, normals, scale, R = self.augmentation_transform(points, normals)
@@ -225,7 +235,8 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         input_list = self.classification_inputs(stacked_points,
                                                 stacked_features,
                                                 labels,
-                                                stack_lengths)
+                                                stack_lengths,
+                                                cloud_names=cloud_names)
 
         # Add scale and rotation for testing
         input_list += [scales, rots, model_inds]
@@ -254,6 +265,15 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
             filename = join(self.path, '{:s}_{:.3f}_record.pkl'.format(split, subsample_parameter))
             print(f'\nPath to subsampled: {self.path}')
 
+        # Collect training file names
+        if self.mode == 'train':
+            self.names = np.loadtxt(join(self.path, 'train.txt'), dtype=str)
+        elif self.mode == 'val':
+            self.names = np.loadtxt(join(self.path, 'val.txt'), dtype=str)
+        else:
+            self.names = np.loadtxt(join(self.path, 'test.txt'), dtype=str)
+
+        names = self.names
 
         if exists(filename):
             with open(filename, 'rb') as file:
@@ -262,14 +282,16 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         # Else compute them from original points
         else:
 
-            # Collect training file names
+            # # Collect training file names
             if self.mode == 'train':
-                names = np.loadtxt(join(self.path, 'train.txt'), dtype=str)
+                self.names = np.loadtxt(join(self.path, 'train.txt'), dtype=str)
             elif self.mode == 'val':
-                names = np.loadtxt(join(self.path, 'val.txt'), dtype=str)
+                self.names = np.loadtxt(join(self.path, 'val.txt'), dtype=str)
             else:
-                names = np.loadtxt(join(self.path, 'test.txt'), dtype=str)
+                self.names = np.loadtxt(join(self.path, 'test.txt'), dtype=str)
 
+            names = self.names
+            
             # Initialize containers
             input_points = []
             input_normals = []
@@ -304,7 +326,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 original_count = data.shape[0]
 
                 # Subsample them
-                if self.config.first_subsampling_dl > 0 and self.do_grid_subsample and self.do_first_grid_subsample:
+                if self.config.first_subsampling_dl > 0 and self.do_grid_subsample:
                     points, normals = grid_subsampling(data[:, :3],
                                                        features=data[:, 3:],
                                                        sampleDl=self.config.first_subsampling_dl)
@@ -318,6 +340,15 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                         'subsampled_count': subsampled_count,
                         'percentage': percent_of_original
                     })
+                    
+                    # Layer idx 0
+                    if self.mode == 'train':
+                        save_subsampled_clouds(points=points,
+                                        batch_lengths=[points.shape[0]],
+                                        layer_idx=0,
+                                        config=self.config,
+                                        labels=[self.name_to_label[class_folder]],
+                                        cloud_names = [cloud_name])
                     
                     # print(f'Shape of input features from grid_subsample: {normals.shape}')
                 else:
