@@ -32,7 +32,7 @@ import re
 import tempfile
 
 from data_processing.data_preparation import copy_folder
-from augmentation.augmentation import calculate_hag, rotate_las, normalize_xy, poisson_subsample, jitter
+from augmentation.augmentation import calculate_hag, rotate_las, normalize_xy, poisson_subsample, jitter, decimate
 
 class PipelineConfig:
     def __init__(self, input_folder,
@@ -172,7 +172,7 @@ def normalize_intensity(config, las_file):
     else:
         pass
 
-def stratified_k_fold_split(config):
+def stratified_k_fold_split(config, redo=False):
     input_folder = config.copied_folder
     foldername = input_folder.split('/')[-1]
     now = datetime.now().strftime("%Y_%m_%d_%H_%M")
@@ -211,43 +211,6 @@ def stratified_k_fold_split(config):
     config.test_folders = test_folders
     return train_folders, test_folders
 
-
-def decimate(config, las_file):
-    decimation_percentage = config.decimation_percentage
-    decimation_runs = config.decimation_runs
-
-    las = lp.read(las_file)
-    points = np.vstack((las.x, las.y, las.z)).transpose()
-
-    for i in range(decimation_runs):
-        # Calculate the number of points to sample based on the percentage
-        num_points = points.shape[0]
-        # print(f'Total number of points: {num_points}')
-        point_samples = int(num_points * (decimation_percentage / 100.0))
-        # print(f'Point samples: {point_samples}')
-
-        # Randomly sample the points
-        indices = np.random.choice(num_points, point_samples, replace=False)
-        decimated_points = las.points[indices]
-
-        header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-        header.offsets = las.header.offsets
-        header.scales = las.header.scales
-
-        decimated_las = lp.LasData(header)
-        decimated_las.points = decimated_points
-
-        for dim_name in las.point_format.dimension_names:
-            original_array = getattr(las, dim_name)
-            decimated_array = original_array[indices]
-            setattr(decimated_las, dim_name, decimated_array)
-
-        output_file = las_file.replace('.laz', f'_decim_{i}.laz')
-
-        las.write(output_file)
-
-    os.remove(las_file)
-
 def z_noise(config, las_file):
     return
 
@@ -266,7 +229,8 @@ def augmentation(config):
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
                   
-                if 'jitter' in augmentation_process:
+                # Only apply jitter on train  
+                if 'jitter' in augmentation_process and folder in train_folders:
                     jitter(config, las_file=os.path.join(folder, las_file))
      
      for folder in all_folders:
@@ -279,7 +243,8 @@ def augmentation(config):
                 if 'normalize_xy' in augmentation_process:
                     normalize_xy(las_file=os.path.join(folder, las_file))
 
-                if 'decimate' in augmentation_process:
+                # Only apply decimation on train
+                if 'decimate' in augmentation_process and folder in train_folders:
                     # print(f'Decimating by {config.decimation_percentage}%')
                     decimate(config, las_file=os.path.join(folder, las_file))
 
@@ -448,8 +413,9 @@ def run_training(config, args=None):
         print(f'No class weights in config, loading from .npy...')
         class_weights_file = os.path.join(config.dataset_dir, 'class_weights.npy')
         if not os.path.exists(class_weights_file):
-            print(f'No class weights. Using balanced')
-            config.class_weights = [1,1,1,1,1,1]
+            print(f'No class weights. Using pre-determined')
+            config.class_weights = [2.7263922518159807, 0.4964726631393298, 0.8790007806401249, 1.101761252446184, 0.8556231003039514, 1.3517406962785115, 1.5033377837116155]
+
         else:
             config.class_weights = np.load(class_weights_file, allow_pickle=True).tolist()
 
@@ -657,10 +623,10 @@ def plot_test_results(config):
 def runpipeline(config):
 
     # print(f'Copying to {config.copied_folder}')
-    copied_als_folder = copy_folder(config)
+    #copied_als_folder = copy_folder(config)
 
     # print(f'\nConverting HAG to z')
-    convert_hag_to_z(config)
+    #convert_hag_to_z(config)
 
     print(f'\nSplitting into {config.n_splits} folds')
     train_folders, test_folders = stratified_k_fold_split(config)
@@ -678,10 +644,15 @@ def runpipeline(config):
     plot_test_results(config)
 
 def main():
+    
+    # Inputs: 1: rotation, 2: decimation_runs 3: jitter
+    rotation_input = int(sys.argv[1])
+    decimation_runs_input = int(sys.argv[2])
+    jitter_amount_input = float(sys.argv[3]) 
 
     config = PipelineConfig(
     # KPConv parameters
-    max_epochs = 50,
+    max_epochs = 5,
     architecture = 'deformable', # 'rigid', 'deformable'
     first_kpconv_subsampling_dl = 0.2,
     num_kernel_points = 15,
@@ -700,23 +671,23 @@ def main():
     # Set augmentation parameters
     # Augment:
     # 'poisson_subsample', 'jitter', 'rotate_las', 'decimate'
-    augmentation_process = ['rotate_las', 'jitter', 'normalize_xy'],
-    decimation_runs = 2,
-    decimation_percentage=90,
-    jitter_amount= 0.01,
+    augmentation_process = ['rotate_las', 'decimate', 'jitter', 'normalize_xy'],
+    rotations = rotation_input,
+    decimation_runs = decimation_runs_input,
+    decimation_percentage=70,
+    jitter_amount = jitter_amount_input,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
-    max_point_threshold = 2400,
+    max_point_threshold = 2100,
     features = ['intensity'],
     input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
-    copied_folder = f'/media/davidhersh/T76/Data/DataJun11_Copied7',
-    dataset_dir = '/media/davidhersh/T76/Data/DataJun118',
-    saving_path= '/media/davidhersh/T76/Data/DataJun118',
+    copied_folder = f'/media/davidhersh/T76/Data/DataJun12_Copied_v12',
+    dataset_dir = f'/media/davidhersh/T76/Data2/DataJun27_rot={rotation_input}_druns={decimation_runs_input}_j={jitter_amount_input}',
+    saving_path= f'/media/davidhersh/T76/Data2/DataJun27_rot={rotation_input}_druns={decimation_runs_input}_j={jitter_amount_input}',
     # k-fold
     n_splits = 3,
     # Augmentation values
     min_subsample_distance = 0.00001,
-    rotations = 1,
     normals_search_radius = 0.5,
     normals_method = 'radius',
     knn = 30

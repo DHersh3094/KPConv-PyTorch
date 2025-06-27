@@ -67,41 +67,47 @@ def rotate_z(pointcloud, degrees):
 
 
 def rotate_las(las_file, rotations):
-        las = lp.read(las_file)
+    
+        # Handle 0 rotation:
+        if rotations == 0:
+            return
+    
+        else:
+            las = lp.read(las_file)
 
-        point_data = np.vstack((las.x, las.y, las.z)).T
+            point_data = np.vstack((las.x, las.y, las.z)).T
 
-        quadrant_ranges = []
-        step = 360 // rotations
-        for i in range(rotations):
-            quadrant_ranges.append((i * step, (i + 1) * step))
+            quadrant_ranges = []
+            step = 360 // rotations
+            for i in range(rotations):
+                quadrant_ranges.append((i * step, (i + 1) * step))
 
-        random_rotations = [np.random.uniform(low, high) for low, high in quadrant_ranges]
+            random_rotations = [np.random.uniform(low, high) for low, high in quadrant_ranges]
 
-        for i, rotation in enumerate(random_rotations):
+            for i, rotation in enumerate(random_rotations):
 
-            rotated_points = rotate_z(point_data, rotation)
+                rotated_points = rotate_z(point_data, rotation)
 
-            header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-            header.offsets = las.header.offsets
-            header.scales = las.header.scales
+                header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
+                header.offsets = las.header.offsets
+                header.scales = las.header.scales
 
-            rotated_las = lp.LasData(header)
-            rotated_las.x = rotated_points[:, 0]
-            rotated_las.y = rotated_points[:, 1]
-            rotated_las.z = rotated_points[:, 2]
+                rotated_las = lp.LasData(header)
+                rotated_las.x = rotated_points[:, 0]
+                rotated_las.y = rotated_points[:, 1]
+                rotated_las.z = rotated_points[:, 2]
 
-            for dim_name in las.point_format.dimension_names:
-                if dim_name not in ["X", "Y", "Z"]:
-                    setattr(rotated_las, dim_name, getattr(las, dim_name))
+                for dim_name in las.point_format.dimension_names:
+                    if dim_name not in ["X", "Y", "Z"]:
+                        setattr(rotated_las, dim_name, getattr(las, dim_name))
 
-            base_folder = os.path.dirname(las_file)
-            base_name = os.path.basename(las_file).replace('.laz', f'_rot_{int(rotation)}.laz')
-            output_file = os.path.join(base_folder, base_name)
+                base_folder = os.path.dirname(las_file)
+                base_name = os.path.basename(las_file).replace('.laz', f'_rot_{int(rotation)}.laz')
+                output_file = os.path.join(base_folder, base_name)
 
-            rotated_las.write(output_file)
+                rotated_las.write(output_file)
             
-        os.remove(las_file)
+            # os.remove(las_file)
 
 
 def normalize_xy(las_file):
@@ -172,66 +178,77 @@ def poisson_subsample(config, las_file):
 def decimate(config, las_file):
     decimation_percentage = config.decimation_percentage
     decimation_runs = config.decimation_runs
+    
+    # Handle when decimate_runs ==0
+    if decimation_runs == 0:
+        return
 
-    las = lp.read(las_file)
-    points = np.vstack((las.x, las.y, las.z)).transpose()
+    else:
+        las = lp.read(las_file)
+        points = np.vstack((las.x, las.y, las.z)).transpose()
 
-    for i in range(decimation_runs):
-        # Calculate the number of points to sample based on the percentage
-        num_points = points.shape[0]
-        # print(f'Total number of points: {num_points}')
-        point_samples = int(num_points * (decimation_percentage / 100.0))
-        # print(f'Point samples: {point_samples}')
+        for i in range(decimation_runs):
+            # Calculate the number of points to sample based on the percentage
+            num_points = points.shape[0]
+            # print(f'Total number of points: {num_points}')
+            point_samples = int(num_points * (decimation_percentage / 100.0))
+            # print(f'Point samples: {point_samples}')
 
-        # Randomly sample the points
-        indices = np.random.choice(num_points, point_samples, replace=False)
-        decimated_points = las.points[indices]
+            # Randomly sample the points
+            indices = np.random.choice(num_points, point_samples, replace=False)
+            decimated_points = las.points[indices]
 
-        header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-        header.offsets = las.header.offsets
-        header.scales = las.header.scales
+            header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
+            header.offsets = las.header.offsets
+            header.scales = las.header.scales
 
-        decimated_las = lp.LasData(header)
-        decimated_las.points = decimated_points
+            decimated_las = lp.LasData(header)
+            decimated_las.points = decimated_points
 
-        for dim_name in las.point_format.dimension_names:
-            original_array = getattr(las, dim_name)
-            decimated_array = original_array[indices]
-            setattr(decimated_las, dim_name, decimated_array)
+            for dim_name in las.point_format.dimension_names:
+                original_array = getattr(las, dim_name)
+                decimated_array = original_array[indices]
+                setattr(decimated_las, dim_name, decimated_array)
 
-        output_file = las_file.replace('.laz', f'_decim_{i}.laz')
+            output_file = las_file.replace('.laz', f'_decim_{i}.laz')
 
-        decimated_las.write(output_file)
+            decimated_las.write(output_file)
 
-    os.remove(las_file)
+        # os.remove(las_file)
     
 def jitter(config, las_file):
     amount = config.jitter_amount
-    las = lp.read(las_file)
-    xyz = np.vstack((las.x, las.y, las.z)).T
     
-    #Bounds 
-    min_bound = np.min(xyz, axis=0)
-    max_bound = np.max(xyz, axis=0)
-    extent = max_bound - min_bound
-    noise = np.random.rand(*xyz.shape) * extent * amount
-    xyz_noisy = xyz + noise
+    # Handle 0.0
+    if amount == 0:
+        return
     
-    new_header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-    new_header.scales = las.header.scales
-    new_header.offsets = las.header.offsets
+    else:
+        las = lp.read(las_file)
+        xyz = np.vstack((las.x, las.y, las.z)).T
+        
+        #Bounds 
+        min_bound = np.min(xyz, axis=0)
+        max_bound = np.max(xyz, axis=0)
+        extent = max_bound - min_bound
+        noise = np.random.rand(*xyz.shape) * extent * amount
+        xyz_noisy = xyz + noise
+        
+        new_header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
+        new_header.scales = las.header.scales
+        new_header.offsets = las.header.offsets
 
-    new_las = lp.LasData(new_header)
+        new_las = lp.LasData(new_header)
 
-    new_las.x = xyz_noisy[:, 0]
-    new_las.y = xyz_noisy[:, 1]
-    new_las.z = xyz_noisy[:, 2]
+        new_las.x = xyz_noisy[:, 0]
+        new_las.y = xyz_noisy[:, 1]
+        new_las.z = xyz_noisy[:, 2]
 
-    for dim_name in las.point_format.dimension_names:
-        if dim_name not in ["X", "Y", "Z"]:
-            setattr(new_las, dim_name, getattr(las, dim_name))
+        for dim_name in las.point_format.dimension_names:
+            if dim_name not in ["X", "Y", "Z"]:
+                setattr(new_las, dim_name, getattr(las, dim_name))
 
-    new_las_name = las_file.replace('.laz', '_j.laz')
-    new_las.write(new_las_name)
+        new_las_name = las_file.replace('.laz', '_j.laz')
+        new_las.write(new_las_name)
     
-    os.remove(las_file)
+    # os.remove(las_file)
