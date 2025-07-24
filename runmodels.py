@@ -25,14 +25,13 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.utils.class_weight import compute_class_weight
 from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree
-from sklearn.preprocessing import MinMaxScaler
 from jakteristics import las_utils, compute_features, FEATURE_NAMES
 from tqdm import tqdm
 import re
 import tempfile
 
 from data_processing.data_preparation import copy_folder
-from augmentation.augmentation import calculate_hag, rotate_las, normalize_xy, poisson_subsample, jitter
+from augmentation.augmentation import calculate_hag, rotate_las, normalize_xy, poisson_subsample, jitter, normalize_intensity
 
 class PipelineConfig:
     def __init__(self, input_folder,
@@ -147,29 +146,6 @@ def calculate_normals(config, las_file):
             las_utils.write_with_extra_dims(las_file, output_file, features, FEATURE_NAMES)
             os.remove(las_file)
     elif method == 'knn':
-        pass
-
-
-def normalize_intensity(config, las_file):
-    if 'intensity' in config.features:
-        las = lp.read(las_file)
-
-        # Skip if 'NormalizedIntensity' already exists
-        if "NormalizedIntensity" in las.point_format.extra_dimension_names:
-            print(f"'NormalizedIntensity' already exists in {las_file}, skipping.")
-            return
-
-        intensities = las.intensity.astype(np.float64)
-
-        scalar = MinMaxScaler(feature_range=(0,1))
-
-        intensities_reshaped = intensities.reshape(-1,1)
-        normalized_intensities = scalar.fit_transform(intensities_reshaped).flatten()
-        new_dim = ExtraBytesParams(name='NormalizedIntensity', type='float32')
-        las.add_extra_dim(new_dim)
-        las.NormalizedIntensity = normalized_intensities.astype(np.float32)
-        las.write(las_file)
-    else:
         pass
 
 def stratified_k_fold_split(config):
@@ -708,15 +684,15 @@ def main():
     min_point_threshold = 2000,
     max_point_threshold = 2400,
     features = ['intensity'],
-    input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
-    copied_folder = f'/media/davidhersh/T76/Data/DataJun11_Copied7',
-    dataset_dir = '/media/davidhersh/T76/Data/DataJun118',
-    saving_path= '/media/davidhersh/T76/Data/DataJun118',
+    input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/June2025_ExploreCanopyPointDist/ALS_Data_HAG',
+    copied_folder = f'/media/davidhersh/T77/Data/DataJul24',
+    dataset_dir = '/media/davidhersh/T7/Data/DataJul24',
+    saving_path= '/media/davidhersh/T77/Data/DataJul24',
     # k-fold
     n_splits = 3,
     # Augmentation values
     min_subsample_distance = 0.00001,
-    rotations = 1,
+    rotations = 2,
     normals_search_radius = 0.5,
     normals_method = 'radius',
     knn = 30

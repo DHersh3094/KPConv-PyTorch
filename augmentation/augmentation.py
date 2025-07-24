@@ -235,3 +235,25 @@ def jitter(config, las_file):
     new_las.write(new_las_name)
     
     # os.remove(las_file)
+
+def normalize_intensity(config, las_file):
+    if 'intensity' in config.features:
+        las = lp.read(las_file)
+
+        # Skip if 'NormalizedIntensity' already exists
+        if "NormalizedIntensity" in las.point_format.extra_dimension_names:
+            print(f"'NormalizedIntensity' already exists in {las_file}, skipping.")
+            return
+
+        intensities = las.intensity.astype(np.float64)
+
+        scalar = MinMaxScaler(feature_range=(0,1))
+
+        intensities_reshaped = intensities.reshape(-1,1)
+        normalized_intensities = scalar.fit_transform(intensities_reshaped).flatten()
+        new_dim = ExtraBytesParams(name='NormalizedIntensity', type='float32')
+        las.add_extra_dim(new_dim)
+        las.NormalizedIntensity = normalized_intensities.astype(np.float32)
+        las.write(las_file)
+    else:
+        pass
