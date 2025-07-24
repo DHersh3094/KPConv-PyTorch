@@ -417,7 +417,7 @@ def run_training(config, args=None):
         class_weights_file = os.path.join(config.dataset_dir, 'class_weights.npy')
         if not os.path.exists(class_weights_file):
             print(f'No class weights. Using balanced')
-            config.class_weights = [1,1,1,1,1,1]
+            config.class_weights = [2.7263922518159807, 0.4964726631393298, 0.8790007806401249, 1.101761252446184, 0.8556231003039514, 1.3517406962785115, 1.5033377837116155]
         else:
             config.class_weights = np.load(class_weights_file, allow_pickle=True).tolist()
 
