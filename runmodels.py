@@ -269,7 +269,7 @@ def augmentation(config):
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
-                if 'jitter' in augmentation_process:
+                if 'jitter' in augmentation_process and folder in train_folders:
                     jitter(config, las_file=os.path.join(folder, las_file))
 
 
