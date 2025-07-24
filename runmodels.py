@@ -237,14 +237,7 @@ def augmentation(config):
      min_subsample_distance = config.min_subsample_distance
 
      all_folders = train_folders + test_folders
-     
-     for folder in all_folders:
-        for las_file in os.listdir(folder):
-            if las_file.endswith('.laz'):
-                  
-                if 'jitter' in augmentation_process:
-                    jitter(config, las_file=os.path.join(folder, las_file))
-     
+    
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
@@ -272,13 +265,12 @@ def augmentation(config):
 
                 if 'rotate_las' in augmentation_process:
                     rotate_las(las_file=os.path.join(folder, las_file), rotations=rotations)
-
-     if 'calculate_normals' in augmentation_process:
-         print(f'Calculating normals using {config.normals_method}')
-         for folder in all_folders:
-            for las_file in os.listdir(folder):
-                if las_file.endswith('.laz'):
-                    calculate_normals(config, os.path.join(folder, las_file))
+    
+     for folder in all_folders:
+        for las_file in os.listdir(folder):
+            if las_file.endswith('.laz'):
+                if 'jitter' in augmentation_process:
+                    jitter(config, las_file=os.path.join(folder, las_file))
 
 
 # Convert to KPConv repository dataset format
@@ -636,7 +628,7 @@ def runpipeline(config):
     copied_als_folder = copy_folder(config)
 
     # print(f'\nConverting HAG to z')
-    convert_hag_to_z(config)
+    #convert_hag_to_z(config)
 
     print(f'\nSplitting into {config.n_splits} folds')
     train_folders, test_folders = stratified_k_fold_split(config)
@@ -654,12 +646,15 @@ def runpipeline(config):
     plot_test_results(config)
 
 def main():
+    
+    arch_input = sys.argv[1]
+    subsampling_input = sys.argv[2]
 
     config = PipelineConfig(
     # KPConv parameters
-    max_epochs = 50,
-    architecture = 'deformable', # 'rigid', 'deformable'
-    first_kpconv_subsampling_dl = 0.2,
+    max_epochs = 101,
+    architecture = str(arch_input), # 'rigid', 'deformable'
+    first_kpconv_subsampling_dl = float(subsampling_input),
     num_kernel_points = 15,
 
     # Used in copying folder to calculate class weights
@@ -682,11 +677,11 @@ def main():
     jitter_amount= 0.01,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
-    max_point_threshold = 2400,
+    max_point_threshold = 2200,
     features = ['intensity'],
     input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/June2025_ExploreCanopyPointDist/ALS_Data_HAG',
-    copied_folder = f'/media/davidhersh/T77/Data/DataJul24',
-    dataset_dir = '/media/davidhersh/T7/Data/DataJul24',
+    copied_folder = f'/media/davidhersh/T77/Data/DataJul24Copied',
+    dataset_dir = '/media/davidhersh/T77/Data/DataJul24',
     saving_path= '/media/davidhersh/T77/Data/DataJul24',
     # k-fold
     n_splits = 3,

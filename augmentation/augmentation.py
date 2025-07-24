@@ -19,6 +19,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.utils.class_weight import compute_class_weight
 from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree
+
 from sklearn.preprocessing import MinMaxScaler
 from jakteristics import las_utils, compute_features, FEATURE_NAMES
 from tqdm import tqdm
@@ -234,7 +235,7 @@ def jitter(config, las_file):
     new_las_name = las_file.replace('.laz', '_j.laz')
     new_las.write(new_las_name)
     
-    # os.remove(las_file)
+    os.remove(las_file)
 
 def normalize_intensity(config, las_file):
     if 'intensity' in config.features:
