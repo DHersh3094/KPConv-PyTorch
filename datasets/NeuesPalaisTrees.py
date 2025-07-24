@@ -74,14 +74,6 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
     4: "PseMen",
     5: "QuePet",
     6: "QueRub"
-    # 2: "Fagussylvatica",
-    # 3: "FagussylvaticaAtropunicea",
-    # 4: "Platanusxacerifoliatile",
-    # 5: "Quercusrober",
-    # 6: "QuercusroburFastigiatatile",
-    # 7: "Tiliacordatatile",
-    # 8: "Tiliaxintermedia",
-    # 9: "Tiliaxintermediatile"
 }
 
         # Initialize a bunch of variables concerning class labels
@@ -219,7 +211,7 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
         elif self.config.in_features_dim == 2:
             # nx, ny, nz, and intensity is 4th
             # print(f'Using intensity as extra feature...')
-            stacked_features = np.hstack((stacked_features, stacked_normals[:,3:4]))
+            stacked_features = np.hstack((stacked_features, stacked_normals[:,:1]))
             # print(f'Shape of stacked features: {stacked_features.shape}')
         else:
             raise ValueError('Only accepted input dimensions are 1, 4 and 7 (without and with XYZ)')
@@ -317,10 +309,15 @@ class NeuesPalaisTreesDataset(PointCloudDataset):
                 las = lp.read(las_file)
                 data_xyz = (np.vstack((las.x, las.y, las.z)).T).astype(np.float32)
                 
-                extra_dims = [dim for dim in las.point_format.dimensions if dim.name not in ('X', 'Y', 'Z')]
+                # Load features based on configuration
+                if self.config.in_features_dim == 2: # intensity
+                    extra_dims = [dim for dim in las.point_format.dimensions if dim.name == 'NormalizedIntensity']
+                    
                 data_features = np.vstack([las[dim.name] for dim in extra_dims]).T.astype(np.float32)
+                print(f'Data features: {data_features.shape[0]}')
                 
                 data = np.hstack((data_xyz, data_features))
+
 
                 # Non-subsampled point count
                 original_count = data.shape[0]

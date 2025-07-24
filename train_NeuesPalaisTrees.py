@@ -117,7 +117,7 @@ class NeuesPalaisTreesConfig(Config):
     aggregation_mode = 'sum'
 
     # Choice of input features. 2 for intensity
-    in_features_dim = 1
+    in_features_dim = 2
 
     # Can the network learn modulations
     modulated = True
