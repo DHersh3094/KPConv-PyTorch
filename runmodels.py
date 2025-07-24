@@ -228,14 +228,6 @@ def augmentation(config):
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
-                  
-                # Only apply jitter on train  
-                if 'jitter' in augmentation_process and folder in train_folders:
-                    jitter(config, las_file=os.path.join(folder, las_file))
-     
-     for folder in all_folders:
-        for las_file in os.listdir(folder):
-            if las_file.endswith('.laz'):
 
                 if 'intensity' in config.features:
                     normalize_intensity(config, las_file=os.path.join(folder, las_file))
@@ -262,12 +254,13 @@ def augmentation(config):
                 if 'rotate_las' in augmentation_process:
                     rotate_las(las_file=os.path.join(folder, las_file), rotations=rotations)
 
-     if 'calculate_normals' in augmentation_process:
-         print(f'Calculating normals using {config.normals_method}')
-         for folder in all_folders:
-            for las_file in os.listdir(folder):
-                if las_file.endswith('.laz'):
-                    calculate_normals(config, os.path.join(folder, las_file))
+     for folder in all_folders:
+        for las_file in os.listdir(folder):
+            if las_file.endswith('.laz'):
+                  
+                # Only apply jitter on train  
+                if 'jitter' in augmentation_process and folder in train_folders:
+                    jitter(config, las_file=os.path.join(folder, las_file))
 
 
 # Convert to KPConv repository dataset format

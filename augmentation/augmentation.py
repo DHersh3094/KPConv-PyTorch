@@ -251,4 +251,4 @@ def jitter(config, las_file):
         new_las_name = las_file.replace('.laz', '_j.laz')
         new_las.write(new_las_name)
     
-    # os.remove(las_file)
+    os.remove(las_file)
