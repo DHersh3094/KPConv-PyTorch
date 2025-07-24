@@ -101,7 +101,7 @@ def rotate_las(las_file, rotations):
 
             rotated_las.write(output_file)
             
-        os.remove(las_file)
+        # os.remove(las_file)
 
 
 def normalize_xy(las_file):
@@ -203,7 +203,7 @@ def decimate(config, las_file):
 
         decimated_las.write(output_file)
 
-    os.remove(las_file)
+    # os.remove(las_file)
     
 def jitter(config, las_file):
     amount = config.jitter_amount
@@ -234,4 +234,4 @@ def jitter(config, las_file):
     new_las_name = las_file.replace('.laz', '_j.laz')
     new_las.write(new_las_name)
     
-    os.remove(las_file)
+    # os.remove(las_file)
