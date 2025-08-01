@@ -256,7 +256,7 @@ def augmentation(config):
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
-                if 'poisson_subsample' in augmentation_process and folder in train_folders:
+                if 'poisson_subsample' in augmentation_process: # and folder in train_folders:
                     poisson_subsample(config, las_file=os.path.join(folder, las_file))
     
 
@@ -650,14 +650,14 @@ def runpipeline(config):
 def main():
     
     arch_input = sys.argv[1]
-    subsampling_input = sys.argv[2]
+    # subsampling_input = sys.argv[2]
     poisson_input = sys.argv[2]
 
     config = PipelineConfig(
     # KPConv parameters
     max_epochs = 101,
     architecture = str(arch_input), # 'rigid', 'deformable'
-    first_kpconv_subsampling_dl = float(subsampling_input),
+    first_kpconv_subsampling_dl = 0.2 
     num_kernel_points = 15,
 
     # Used in copying folder to calculate class weights
@@ -674,7 +674,7 @@ def main():
     # Set augmentation parameters
     # Augment:
     # 'poisson_subsample', 'jitter', 'rotate_las', 'decimate'
-    augmentation_process = ['poisson_subsample', 'rotate_las', 'jitter', 'normalize_xy'],
+    augmentation_process = ['normalize_xy', 'poisson_subsample', 'rotate_las', 'jitter'],
     decimation_runs = 2,
     decimation_percentage=90,
     jitter_amount= 0.02,
