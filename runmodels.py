@@ -162,6 +162,11 @@ def stratified_k_fold_split(config):
         class_name = file.split('_')[0] #Fagsyl etc...
         files.append(os.path.join(input_folder, file))
         labels.append(class_name)
+        
+    sorted_pairs = sorted(zip(files,labels), key=lambda x: os.path.basename(x[0]))
+    files, labels = zip(*sorted_pairs)
+    files, labels = list(files), list(labels)
+    
     class_counts = Counter(labels)
     print(f'Class counts: {class_counts}')
     
