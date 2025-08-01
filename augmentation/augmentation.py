@@ -143,6 +143,7 @@ def normalize_xy(las_file):
         new_las_name = las_file.replace('.laz', '_nXY.laz')
 
         new_las.write(new_las_name)
+        os.remove
         
 def poisson_subsample(config, las_file):
     min_distance = config.min_subsample_distance
@@ -172,6 +173,7 @@ def poisson_subsample(config, las_file):
     subsampled_las_file_name = las_file.replace(".laz", "_p.laz")
 
     subsampled_las.write(subsampled_las_file_name)
+    os.remove(las_file)
     
 def decimate(config, las_file):
     decimation_percentage = config.decimation_percentage
