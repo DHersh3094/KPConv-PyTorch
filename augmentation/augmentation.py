@@ -102,7 +102,7 @@ def rotate_las(las_file, rotations):
 
             rotated_las.write(output_file)
             
-        # os.remove(las_file)
+        os.remove(las_file)
 
 
 def normalize_xy(las_file):
@@ -167,8 +167,9 @@ def poisson_subsample(config, las_file):
 
     subsampled_las = lp.LasData(header)
     subsampled_las.points = las.points[selected_indices]
+    subsampled_las_file_name = las_file.replace(".laz", "_p.laz")
 
-    subsampled_las.write(las_file)
+    subsampled_las.write(subsampled_las_file_name)
     
 def decimate(config, las_file):
     decimation_percentage = config.decimation_percentage
@@ -207,16 +208,13 @@ def decimate(config, las_file):
     # os.remove(las_file)
     
 def jitter(config, las_file):
-    amount = config.jitter_amount
+    std = config.jitter_amount
     las = lp.read(las_file)
     xyz = np.vstack((las.x, las.y, las.z)).T
     
-    #Bounds 
-    min_bound = np.min(xyz, axis=0)
-    max_bound = np.max(xyz, axis=0)
-    extent = max_bound - min_bound
-    noise = np.random.rand(*xyz.shape) * extent * amount
+    noise = np.random.normal(0, std, xyz.shape)
     xyz_noisy = xyz + noise
+    
     
     new_header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
     new_header.scales = las.header.scales

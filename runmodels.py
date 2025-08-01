@@ -649,6 +649,7 @@ def main():
     
     arch_input = sys.argv[1]
     subsampling_input = sys.argv[2]
+    poisson_input = sys.argv[2]
 
     config = PipelineConfig(
     # KPConv parameters
@@ -671,23 +672,23 @@ def main():
     # Set augmentation parameters
     # Augment:
     # 'poisson_subsample', 'jitter', 'rotate_las', 'decimate'
-    augmentation_process = ['rotate_las', 'jitter', 'normalize_xy'],
+    augmentation_process = ['poisson_subsample', 'rotate_las', 'jitter', 'normalize_xy'],
     decimation_runs = 2,
     decimation_percentage=90,
-    jitter_amount= 0.01,
+    jitter_amount= 0.02,
     z_noise = 0.02, # +/- 2cm
     min_point_threshold = 2000,
-    max_point_threshold = 2200,
+    max_point_threshold = 1000000,
     features = ['intensity'],
     input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/June2025_ExploreCanopyPointDist/ALS_Data_HAG',
     copied_folder = f'/media/davidhersh/T77/Data/DataJul24Copied',
     dataset_dir = '/media/davidhersh/T77/Data/DataJul24',
     saving_path= '/media/davidhersh/T77/Data/DataJul24',
     # k-fold
-    n_splits = 3,
+    n_splits = 10,
     # Augmentation values
-    min_subsample_distance = 0.00001,
-    rotations = 2,
+    min_subsample_distance = poisson_input,
+    rotations = 4,
     normals_search_radius = 0.5,
     normals_method = 'radius',
     knn = 30
