@@ -251,17 +251,19 @@ def augmentation(config):
                 if 'decimate' in augmentation_process:
                     # print(f'Decimating by {config.decimation_percentage}%')
                     decimate(config, las_file=os.path.join(folder, las_file))
+                    
+    # First poisson subsample, then rotate, jitter
+     for folder in all_folders:
+        for las_file in os.listdir(folder):
+            if las_file.endswith('.laz'):
+                if 'poisson_subsample' in augmentation_process and folder in train_folders:
+                    poisson_subsample(config, las_file=os.path.join(folder, las_file))
+    
 
     # Re-list because of name change from previous step
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
-
-                if 'z_noise' in augmentation_process:
-                    pass
-
-                if 'poisson_subsample' in augmentation_process:
-                    poisson_subsample(config, las_file=os.path.join(folder, las_file))
 
                 if 'rotate_las' in augmentation_process:
                     rotate_las(las_file=os.path.join(folder, las_file), rotations=rotations)
