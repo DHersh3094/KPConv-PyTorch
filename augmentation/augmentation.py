@@ -214,25 +214,10 @@ def decimate(config, las_file):
 def jitter(config, las_file):
     std = config.jitter_amount
     las = lp.read(las_file)
-    xyz = np.vstack((las.x, las.y, las.z)).T
     
-    noise = np.random.normal(0, std, xyz.shape)
-    xyz_noisy = xyz + noise
-    
-    
-    new_header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-    new_header.scales = las.header.scales
-    new_header.offsets = las.header.offsets
-
-    new_las = lp.LasData(new_header)
-
-    new_las.x = xyz_noisy[:, 0]
-    new_las.y = xyz_noisy[:, 1]
-    new_las.z = xyz_noisy[:, 2]
-
-    for dim_name in las.point_format.dimension_names:
-        if dim_name not in ["X", "Y", "Z"]:
-            setattr(new_las, dim_name, getattr(las, dim_name))
+    las.x = las.x + np.random.normal(0, std, las.x.shape)
+    las.y = las.y + np.random.normal(0, std, las.y.shape)
+    las.z = las.z + np.random.normal(0, std, las.z.shape)
 
     new_las_name = las_file.replace('.laz', '_j.laz')
     new_las.write(new_las_name)
