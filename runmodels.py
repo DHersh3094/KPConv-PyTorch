@@ -263,7 +263,7 @@ def augmentation(config):
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
 
-                if 'decimate' in augmentation_process:
+                if 'decimate' in augmentation_process and folder in train_folders:
                     # print(f'Decimating by {config.decimation_percentage}%')
                     decimate(config, las_file=os.path.join(folder, las_file))
 
