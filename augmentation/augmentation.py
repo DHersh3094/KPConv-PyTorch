@@ -144,8 +144,12 @@ def normalize_xy(las_file):
         for dim_name in las.point_format.dimension_names:
             if dim_name not in ["X", "Y", "Z"]:
                 setattr(new_las, dim_name, getattr(las, dim_name))
+        
+        new_las_name = las_file.replace('.laz', '_nXY.laz')
 
-        new_las.write(las_file)
+        new_las.write(new_las_name)
+        os.remove(las_file)
+
         
 def poisson_subsample(config, las_file):
     min_distance = config.min_subsample_distance
