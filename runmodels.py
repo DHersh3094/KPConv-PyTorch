@@ -172,7 +172,7 @@ def normalize_intensity(config, las_file):
     else:
         pass
 
-def stratified_k_fold_split(config, redo=False):
+def stratified_k_fold_split(config):
     input_folder = config.copied_folder
     foldername = input_folder.split('/')[-1]
     now = datetime.now().strftime("%Y_%m_%d_%H_%M")
@@ -186,6 +186,11 @@ def stratified_k_fold_split(config, redo=False):
         class_name = file.split('_')[0] #Fagsyl etc...
         files.append(os.path.join(input_folder, file))
         labels.append(class_name)
+        
+    sorted_pairs = sorted(zip(files,labels), key=lambda x: os.path.basename(x[0]))
+    files, labels = zip(*sorted_pairs)
+    files, labels = list(files), list(labels)
+    
     class_counts = Counter(labels)
     print(f'Class counts: {class_counts}')
     
@@ -210,6 +215,7 @@ def stratified_k_fold_split(config, redo=False):
     config.train_folders = train_folders
     config.test_folders = test_folders
     return train_folders, test_folders
+
 
 def z_noise(config, las_file):
     return
