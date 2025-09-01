@@ -89,7 +89,11 @@ def rotate_las(las_file, rotations):
                 rotated_points = rotate_z(point_data, rotation)
 
                 header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-                header.offsets = las.header.offsets
+                header.offsets = [
+                    np.min(rotated_points[:,0]),
+                    np.min(rotated_points[:,1]),
+                    las.header.offsets[2]
+                ]
                 header.scales = las.header.scales
 
                 rotated_las = lp.LasData(header)
