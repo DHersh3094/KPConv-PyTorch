@@ -224,7 +224,7 @@ def augmentation(config):
      min_subsample_distance = config.min_subsample_distance
 
      all_folders = train_folders + test_folders
-     
+    
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
@@ -235,32 +235,32 @@ def augmentation(config):
                 if 'normalize_xy' in augmentation_process:
                     normalize_xy(las_file=os.path.join(folder, las_file))
 
-                # Only apply decimation on train
-                if 'decimate' in augmentation_process and folder in train_folders:
+                if 'decimate' in augmentation_process:
                     # print(f'Decimating by {config.decimation_percentage}%')
                     decimate(config, las_file=os.path.join(folder, las_file))
+                    
+    # First poisson subsample, then rotate, jitter
+     for folder in all_folders:
+        for las_file in os.listdir(folder):
+            if las_file.endswith('.laz'):
+                if 'poisson_subsample' in augmentation_process and folder in train_folders:
+                    poisson_subsample(config, las_file=os.path.join(folder, las_file))
+    
 
     # Re-list because of name change from previous step
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
 
-                if 'z_noise' in augmentation_process:
-                    pass
-
-                if 'poisson_subsample' in augmentation_process:
-                    poisson_subsample(config, las_file=os.path.join(folder, las_file))
-
-                if 'rotate_las' in augmentation_process:
+                if 'rotate_las' in augmentation_process and folder in train_folders:
                     rotate_las(las_file=os.path.join(folder, las_file), rotations=rotations)
-
+    
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
-                  
-                # Only apply jitter on train  
                 if 'jitter' in augmentation_process and folder in train_folders:
                     jitter(config, las_file=os.path.join(folder, las_file))
+
 
 
 # Convert to KPConv repository dataset format
@@ -645,7 +645,7 @@ def main():
 
     config = PipelineConfig(
     # KPConv parameters
-    max_epochs = 5,
+    max_epochs = 101,
     architecture = 'deformable', # 'rigid', 'deformable'
     first_kpconv_subsampling_dl = 0.2,
     num_kernel_points = 15,
@@ -675,8 +675,8 @@ def main():
     features = ['intensity'],
     input_folder='/home/davidhersh/Dropbox/Uni/ThesisHersh/ALS_data',
     copied_folder = f'/media/davidhersh/T76/Data/DataJun12_Copied_v12',
-    dataset_dir = f'/media/davidhersh/T76/Data2/DataJun27_rot={rotation_input}_druns={decimation_runs_input}_j={jitter_amount_input}',
-    saving_path= f'/media/davidhersh/T76/Data2/DataJun27_rot={rotation_input}_druns={decimation_runs_input}_j={jitter_amount_input}',
+    dataset_dir = f'/raid/hersh/Data/AugmentationExp_v2/DataJul24_rot={rotation_input}_druns={decimation_runs_input}_j={jitter_amount_input}',
+    saving_path= f'/raid/hersh/Data/AugmentationExp_v2/DataJul24_rot={rotation_input}_druns={decimation_runs_input}_j={jitter_amount_input}',
     # k-fold
     n_splits = 3,
     # Augmentation values
