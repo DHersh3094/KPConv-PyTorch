@@ -230,6 +230,13 @@ def augmentation(config):
      min_subsample_distance = config.min_subsample_distance
 
      all_folders = train_folders + test_folders
+     
+     for folder in all_folders:
+        for las_file in os.listdir(folder):
+            if las_file.endswith('.laz'):
+
+                if 'normalize_xy' in augmentation_process:
+                    normalize_xy(las_file=os.path.join(folder, las_file))
                     
     # First poisson subsample, then rotate, jitter
      for folder in all_folders:
@@ -238,7 +245,6 @@ def augmentation(config):
                 if 'poisson_subsample' in augmentation_process and folder in train_folders:
                     poisson_subsample(config, las_file=os.path.join(folder, las_file))
     
-
     # Re-list because of name change from previous step
      for folder in all_folders:
         for las_file in os.listdir(folder):
@@ -256,12 +262,6 @@ def augmentation(config):
      for folder in all_folders:
         for las_file in os.listdir(folder):
             if las_file.endswith('.laz'):
-
-                if 'intensity' in config.features:
-                    normalize_intensity(config, las_file=os.path.join(folder, las_file))
-
-                if 'normalize_xy' in augmentation_process:
-                    normalize_xy(las_file=os.path.join(folder, las_file))
 
                 if 'decimate' in augmentation_process:
                     # print(f'Decimating by {config.decimation_percentage}%')
