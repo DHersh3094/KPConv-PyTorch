@@ -220,7 +220,7 @@ def jitter(config, las_file):
     las.z = las.z + np.random.normal(0, std, las.z.shape)
 
     new_las_name = las_file.replace('.laz', '_j.laz')
-    new_las.write(new_las_name)
+    las.write(new_las_name)
     
     # os.remove(las_file)
 
