@@ -84,7 +84,7 @@ def rotate_las(las_file, rotations):
             rotated_points = rotate_z(point_data, rotation)
 
             header = lp.LasHeader(point_format=las.header.point_format, version=las.header.version)
-            header.offsets = las.header.offsets
+            # header.offsets = las.header.offsets
             header.scales = las.header.scales
 
             rotated_las = lp.LasData(header)
@@ -102,7 +102,7 @@ def rotate_las(las_file, rotations):
 
             rotated_las.write(output_file)
             
-        os.remove(las_file)
+        # os.remove(las_file)
 
 
 def normalize_xy(las_file):
@@ -143,7 +143,7 @@ def normalize_xy(las_file):
         new_las_name = las_file.replace('.laz', '_nXY.laz')
 
         new_las.write(new_las_name)
-        os.remove
+        os.remove(las_file)
         
 def poisson_subsample(config, las_file):
     min_distance = config.min_subsample_distance
@@ -222,7 +222,7 @@ def jitter(config, las_file):
     new_las_name = las_file.replace('.laz', '_j.laz')
     new_las.write(new_las_name)
     
-    os.remove(las_file)
+    # os.remove(las_file)
 
 def normalize_intensity(config, las_file):
     if 'intensity' in config.features:
